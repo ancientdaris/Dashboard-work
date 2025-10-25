@@ -5,10 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { 
-  ImageIcon,
   ArrowLeft,
   Loader2,
 } from "lucide-react";
@@ -51,11 +50,14 @@ interface ProductFormData {
   expiry_date: string;
 }
 
-export default function NewProductPage() {
+export default function EditProductPage() {
   const router = useRouter();
+  const params = useParams();
+  const productId = params.id as string;
   const { toast } = useToast();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
@@ -78,12 +80,60 @@ export default function NewProductPage() {
 
   const [showErrors, setShowErrors] = useState(false);
 
+  useEffect(() => {
+    fetchProduct();
+  }, [productId]);
+
+  const fetchProduct = async () => {
+    try {
+      setFetching(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase
+        .from('products')
+        .select('*')
+        .eq('id', productId as never)
+        .single() as any) as { data: ProductFormData | null; error: Error | null };
+
+      if (error) throw error;
+
+      if (data) {
+        setFormData({
+          name: data.name || '',
+          sku: data.sku || '',
+          description: data.description || '',
+          category: data.category || '',
+          brand: data.brand || '',
+          unit_price: data.unit_price || 0,
+          cost_price: data.cost_price || 0,
+          tax_rate: data.tax_rate || 18,
+          hsn_code: data.hsn_code || '',
+          sac_code: data.sac_code || '',
+          barcode: data.barcode || '',
+          weight: data.weight || 0,
+          dimensions: data.dimensions,
+          is_active: data.is_active ?? true,
+          batch_tracking_enabled: data.batch_tracking_enabled ?? false,
+          expiry_date: data.expiry_date || '',
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load product",
+        variant: "destructive",
+      });
+      router.push('/products');
+    } finally {
+      setFetching(false);
+    }
+  };
+
   const handleInputChange = (field: keyof ProductFormData, value: string | number | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleDimensionsChange = (dimensions: string) => {
-    // Parse dimensions like "10 × 20 × 30"
     const parts = dimensions.split('×').map(p => parseFloat(p.trim()));
     if (parts.length === 3 && parts.every(p => !isNaN(p))) {
       setFormData(prev => ({
@@ -133,9 +183,9 @@ export default function NewProductPage() {
     
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase
+      const { error } = await (supabase
         .from('products')
-        .insert({
+        .update({
           name: formData.name,
           sku: formData.sku,
           description: formData.description || null,
@@ -153,28 +203,38 @@ export default function NewProductPage() {
           batch_tracking_enabled: formData.batch_tracking_enabled,
           expiry_date: formData.expiry_date || null,
         } as any)
-        .select()
-        .single() as any);
+        .eq('id', productId as never) as any);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Product created successfully",
+        description: "Product updated successfully",
       });
 
       router.push('/products');
     } catch (error) {
-      console.error('Error creating product:', error);
+      console.error('Error updating product:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create product",
+        description: error instanceof Error ? error.message : "Failed to update product",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
+
+  if (fetching) {
+    return (
+      <div className="flex h-screen">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen">
@@ -184,9 +244,9 @@ export default function NewProductPage() {
           {/* Header */}
           <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0 mb-8">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Add New Product</h1>
+              <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Edit Product</h1>
               <p className="text-muted-foreground text-sm mt-1">
-                Fill in the details to add a new product to your inventory
+                Update product details
               </p>
             </div>
             <div className="flex items-center space-x-3">
@@ -205,10 +265,10 @@ export default function NewProductPage() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
+                    Updating...
                   </>
                 ) : (
-                  'Create Product'
+                  'Update Product'
                 )}
               </Button>
             </div>
@@ -261,7 +321,7 @@ export default function NewProductPage() {
                         onChange={(e) => handleInputChange('description', e.target.value)}
                       />
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Category</Label>
                         <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
@@ -286,21 +346,6 @@ export default function NewProductPage() {
                           value={formData.brand}
                           onChange={(e) => handleInputChange('brand', e.target.value)}
                         />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Unit <span className="text-red-500">*</span></Label>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select Unit" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              <SelectItem value="piece">Piece</SelectItem>
-                              <SelectItem value="kg">Kilogram</SelectItem>
-                              <SelectItem value="litre">Litre</SelectItem>
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
                       </div>
                     </div>
                   </div>
@@ -330,14 +375,9 @@ export default function NewProductPage() {
                   </div>
                 </div>
 
-
                 <div>
                   <h2 className="text-lg font-semibold mb-4">Additional Details</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>Minimum Order Quantity</Label>
-                      <Input type="number" defaultValue="1" />
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Weight (kg)</Label>
                       <Input 
@@ -347,17 +387,18 @@ export default function NewProductPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Dimensions</Label>
+                      <Label>Barcode</Label>
                       <Input 
-                        placeholder="L × W × H (cm)" 
-                        onChange={(e) => handleDimensionsChange(e.target.value)}
+                        placeholder="Scan or enter barcode" 
+                        value={formData.barcode}
+                        onChange={(e) => handleInputChange('barcode', e.target.value)}
                       />
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Right Column - Status & Product Images */}
+              {/* Right Column - Status & Pricing */}
               <div className="space-y-6">
                 <div className="space-y-4">
                   <h2 className="text-lg font-semibold">Status & Visibility</h2>
@@ -382,25 +423,10 @@ export default function NewProductPage() {
 
                 <Separator />
 
-                <div className="space-y-6">
-                  <h2 className="text-lg font-semibold">Product Images</h2>
-                  <div className="border-2 border-dashed rounded-lg p-8 bg-white/50 border-muted min-h-[247px] flex items-center justify-center">
-                    <div className="flex flex-col items-center justify-center gap-4 text-center">
-                      <ImageIcon className="h-12 w-12 text-muted-foreground" />
-                      <Button variant="outline">Upload Images</Button>
-                      <p className="text-xs text-muted-foreground">
-                        PNG, JPG up to 10MB each
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                <Separator />
-
                 <div>
                   <h2 className="text-lg font-semibold mb-4">Pricing</h2>
                   <div className="space-y-4">
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Unit Price <span className="text-red-500">*</span></Label>
                         <div className="relative">
@@ -431,29 +457,6 @@ export default function NewProductPage() {
                           />
                         </div>
                       </div>
-                    </div>
-                  </div>
-                </div>
-
-
-                <div>
-                  <h2 className="text-lg font-semibold mb-4">Inventory</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>Stock Quantity <span className="text-red-500">*</span></Label>
-                      <Input type="number" defaultValue="0" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Reorder Level</Label>
-                      <Input type="number" defaultValue="5" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Barcode</Label>
-                      <Input 
-                        placeholder="Scan or enter barcode" 
-                        value={formData.barcode}
-                        onChange={(e) => handleInputChange('barcode', e.target.value)}
-                      />
                     </div>
                   </div>
                 </div>

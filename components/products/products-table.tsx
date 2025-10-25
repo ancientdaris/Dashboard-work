@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import {
   Table,
@@ -53,6 +54,7 @@ interface ProductsTableProps {
 }
 
 export function ProductsTable({ searchTerm }: ProductsTableProps) {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -92,9 +94,8 @@ export function ProductsTable({ searchTerm }: ProductsTableProps) {
   }, [fetchProducts]);
 
   const handleEditProduct = (productId: string) => {
-    // Implement edit product logic
-    console.log('Edit product:', productId);
-    // TODO: Navigate to edit page or open edit modal
+    // Navigate to edit page
+    router.push(`/products/edit/${productId}`);
   };
 
   const handleDeleteProduct = async (productId: string) => {
