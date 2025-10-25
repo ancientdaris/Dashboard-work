@@ -1,11 +1,14 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/layout/sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase";
 import {
   CreditCard,
   Search,
@@ -14,9 +17,123 @@ import {
   AlertCircle,
   Plus,
   FileBarChart,
+  Package,
+  X,
 } from "lucide-react";
 
+interface SearchResult {
+  id: string;
+  name: string;
+  type: 'product' | 'order';
+  subtitle?: string;
+  price?: number;
+}
+
 export default function DashboardPage() {
+  const router = useRouter();
+  const supabase = createClient();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Search products and orders
+  useEffect(() => {
+    const searchData = async () => {
+      if (searchQuery.trim().length < 2) {
+        setSearchResults([]);
+        setShowDropdown(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        // Search products
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: products } = await (supabase
+          .from('products')
+          .select('id, name, sku, unit_price, category')
+          .or(`name.ilike.%${searchQuery}%,sku.ilike.%${searchQuery}%`)
+          .limit(5) as any);
+
+        // Search orders
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: orders } = await (supabase
+          .from('orders')
+          .select('id, order_number, total_amount, status')
+          .ilike('order_number', `%${searchQuery}%`)
+          .limit(3) as any);
+
+        const results: SearchResult[] = [];
+
+        // Add products to results
+        if (products) {
+          products.forEach((product: { id: string; name: string; sku: string; unit_price: number; category: string }) => {
+            results.push({
+              id: product.id,
+              name: product.name,
+              type: 'product',
+              subtitle: `SKU: ${product.sku} • ${product.category || 'Uncategorized'}`,
+              price: product.unit_price,
+            });
+          });
+        }
+
+        // Add orders to results
+        if (orders) {
+          orders.forEach((order: { id: string; order_number: string; total_amount: number; status: string }) => {
+            results.push({
+              id: order.id,
+              name: order.order_number,
+              type: 'order',
+              subtitle: `Status: ${order.status}`,
+              price: order.total_amount,
+            });
+          });
+        }
+
+        setSearchResults(results);
+        setShowDropdown(results.length > 0);
+      } catch (error) {
+        console.error('Search error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(searchData, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, supabase]);
+
+  const handleResultClick = (result: SearchResult) => {
+    if (result.type === 'product') {
+      router.push(`/products`);
+    } else if (result.type === 'order') {
+      router.push(`/orders`);
+    }
+    setShowDropdown(false);
+    setSearchQuery('');
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setShowDropdown(false);
+  };
+
   return (
     <ProtectedRoute>
       <div className="flex h-screen">
@@ -38,12 +155,76 @@ export default function DashboardPage() {
 
           {/* Search and Date Filter */}
           <div className="mb-8 flex items-center gap-4">
-            <div className="relative flex-1  min-w-full max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <div ref={searchRef} className="relative flex-1 min-w-full max-w-sm">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
               <Input
                 placeholder="Search orders, products..."
-                className="pl-10 bg-white/50 border-muted"
+                className="pl-10 pr-10 bg-white/50 border-muted"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
               />
+              {searchQuery && (
+                <button
+                  onClick={clearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-gray-700 z-10"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+              
+              {/* Dropdown Results */}
+              {showDropdown && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 max-h-96 overflow-y-auto z-50">
+                  {loading ? (
+                    <div className="p-4 text-center text-muted-foreground">
+                      Searching...
+                    </div>
+                  ) : searchResults.length > 0 ? (
+                    <div className="py-2">
+                      {searchResults.map((result) => (
+                        <button
+                          key={`${result.type}-${result.id}`}
+                          onClick={() => handleResultClick(result)}
+                          className="w-full px-4 py-3 hover:bg-gray-50 flex items-start gap-3 text-left transition-colors"
+                        >
+                          <div className={`mt-1 rounded-lg p-2 ${
+                            result.type === 'product' 
+                              ? 'bg-blue-100 text-blue-600' 
+                              : 'bg-green-100 text-green-600'
+                          }`}>
+                            {result.type === 'product' ? (
+                              <Package className="h-4 w-4" />
+                            ) : (
+                              <ShoppingCart className="h-4 w-4" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="font-medium text-sm truncate">{result.name}</p>
+                              {result.price !== undefined && (
+                                <span className="text-sm font-semibold text-gray-900 shrink-0">
+                                  ₹{result.price.toFixed(2)}
+                                </span>
+                              )}
+                            </div>
+                            {result.subtitle && (
+                              <p className="text-xs text-muted-foreground mt-1">{result.subtitle}</p>
+                            )}
+                            <p className="text-xs text-blue-600 mt-1 capitalize">
+                              {result.type}
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-muted-foreground">
+                      No results found
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
