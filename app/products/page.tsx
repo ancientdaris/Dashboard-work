@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,16 +9,61 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { ProductsTable } from "@/components/products/products-table";
 import { Plus, Import, Download, Search, X } from "lucide-react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase";
+
+interface ProductStats {
+  total: number;
+  outOfStock: number;
+  lowStock: number;
+}
 
 export default function ProductsPage() {
-  // Sample stats - replace with real data from your API
-  const stats = [
-    { label: 'Total Products', value: '0', color: 'text-blue-600' },
-    { label: 'Out of Stock', value: '0', color: 'text-red-600' },
-    { label: 'Low Stock', value: '0', color: 'text-yellow-600' },
-  ];
-
+  const [stats, setStats] = useState<ProductStats>({
+    total: 0,
+    outOfStock: 0,
+    lowStock: 0
+  });
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const supabase = createClient();
+
+  useEffect(() => {
+    fetchProductStats();
+  }, []);
+
+  const fetchProductStats = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch total products count
+      const { count: totalCount } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true });
+      
+      // Fetch out of stock products count (assuming we have a stock_quantity column)
+      const { count: outOfStockCount } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .lte('stock_quantity', 0);
+      
+      // Fetch low stock products count (assuming low stock is when quantity is less than or equal to 10)
+      const { count: lowStockCount } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .gt('stock_quantity', 0)
+        .lte('stock_quantity', 10);
+      
+      setStats({
+        total: totalCount || 0,
+        outOfStock: outOfStockCount || 0,
+        lowStock: lowStockCount || 0
+      });
+    } catch (error) {
+      console.error('Error fetching product stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ProtectedRoute>
@@ -80,14 +125,24 @@ export default function ProductsPage() {
 
             {/* Stats */}
             <div className="grid gap-4 mb-6 md:grid-cols-3">
-              {stats.map((stat) => (
-                <Card key={stat.label} className="p-4">
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  <p className={`text-2xl font-bold mt-1 ${stat.color}`}>
-                    {stat.value}
-                  </p>
-                </Card>
-              ))}
+              <Card className="p-4">
+                <p className="text-sm text-muted-foreground">Total Products</p>
+                <p className="text-2xl font-bold mt-1 text-blue-600">
+                  {loading ? '...' : stats.total.toLocaleString()}
+                </p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-sm text-muted-foreground">Out of Stock</p>
+                <p className="text-2xl font-bold mt-1 text-red-600">
+                  {loading ? '...' : stats.outOfStock.toLocaleString()}
+                </p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-sm text-muted-foreground">Low Stock</p>
+                <p className="text-2xl font-bold mt-1 text-yellow-600">
+                  {loading ? '...' : stats.lowStock.toLocaleString()}
+                </p>
+              </Card>
             </div>
 
             {/* Products Table */}
