@@ -84,14 +84,23 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right Column - Image */}
+            {/* Right Column - Image with Floating Effect */}
             <div className="relative w-full h-full">
-              <div className="absolute inset-0 w-full h-full">
+              {/* Background Image */}
+              <div className="relative w-full h-full overflow-hidden shadow-2xl">
                 <img
                   src="/images/image1.png"
-                  alt="Dashboard preview"
-                  className="w-full h-full object-cover object-left"
+                  alt="Dashboard preview background"
+                  className="w-full h-full object-cover"
                 />
+                {/* Floating Image */}
+                <div className="absolute inset-0 m-auto w-3/4 h-3/4 rounded-lg overflow-hidden shadow-2xl">
+                  <img
+                    src="/images/localhost_3000_.png"
+                    alt="Dashboard preview floating"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
               </div>
             </div>
           </div>
