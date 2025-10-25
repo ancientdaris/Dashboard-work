@@ -26,7 +26,8 @@ import {
   CreditCard,
   BarChart2,
   User,
-  LogOut
+  LogOut,
+  Settings
 } from "lucide-react";
 
 const sidebarItems = [
@@ -74,6 +75,11 @@ const sidebarItems = [
     title: "Reports",
     href: "/reports",
     icon: BarChart2,
+  },
+  {
+    title: "Settings",
+    href: "/settings",
+    icon: Settings,
   },
 ];
 
@@ -176,11 +182,19 @@ export function Sidebar() {
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem className="text-red-600" onClick={handleLogout}>
+                <Link href="/profile">
+                  <DropdownMenuItem className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </DropdownMenuItem>
+                </Link>
+                <DropdownMenuItem 
+                  className="text-red-600 cursor-pointer" 
+                  onSelect={async (e) => {
+                    e.preventDefault();
+                    await handleLogout();
+                  }}
+                >
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>

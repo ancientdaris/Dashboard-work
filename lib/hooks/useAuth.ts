@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase';
+const supabase = createClient();
 import { User, AuthError } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 
