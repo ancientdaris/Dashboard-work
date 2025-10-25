@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { ActivityLog } from './activity-log'
@@ -51,7 +51,7 @@ type Profile = {
   verified_by: string | null;
 };
 
-export default function SettingsPage() {
+function SettingsContent() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabParam || 'activity');
@@ -513,5 +513,20 @@ export default function SettingsPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </main>
+      </div>
+    }>
+      <SettingsContent />
+    </Suspense>
   );
 }
