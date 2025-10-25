@@ -79,7 +79,7 @@ export default function SignInPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
+                className="h-11 border-2 border-slate-300 focus:border-slate-900 focus:ring-2 focus:ring-slate-900"
               />
             </div>
 
@@ -95,7 +95,7 @@ export default function SignInPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
+                className="h-11 border-2 border-slate-300 focus:border-slate-900 focus:ring-2 focus:ring-slate-900"
               />
             </div>
 
