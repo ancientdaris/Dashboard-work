@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { createClient } from "@/lib/supabase";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -87,6 +88,32 @@ export function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { user, signOut } = useAuth();
+  const [profileName, setProfileName] = useState<string | null>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    if (user) {
+      fetchProfileName();
+    }
+  }, [user]);
+
+  const fetchProfileName = async () => {
+    try {
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+
+      if (data?.full_name) {
+        setProfileName(data.full_name);
+      }
+    } catch (error) {
+      console.error('Error fetching profile name:', error);
+    }
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -94,15 +121,20 @@ export function Sidebar() {
 
   // Get user initials for avatar
   const getUserInitials = () => {
-    if (!user?.user_metadata?.full_name) return user?.email?.substring(0, 2).toUpperCase() || "U";
-    const names = user.user_metadata.full_name.split(" ");
+    const displayName = profileName || user?.user_metadata?.full_name;
+    if (!displayName) return user?.email?.substring(0, 2).toUpperCase() || "U";
+    const names = displayName.split(" ");
     return names.length > 1 
       ? `${names[0][0]}${names[1][0]}`.toUpperCase()
       : names[0].substring(0, 2).toUpperCase();
   };
 
   const getUserName = () => {
-    return user?.user_metadata?.full_name || user?.email || "User";
+    const name = profileName || user?.user_metadata?.full_name || user?.email || "User";
+    // Capitalize first letter of each word
+    return name.split(' ').map((word: string) => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
   };
 
   const getUserEmail = () => {
@@ -182,7 +214,7 @@ export function Sidebar() {
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <Link href="/profile">
+                <Link href="/settings?tab=profile">
                   <DropdownMenuItem className="cursor-pointer">
                     <User className="mr-2 h-4 w-4" />
                     Profile
