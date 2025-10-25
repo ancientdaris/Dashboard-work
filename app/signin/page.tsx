@@ -6,20 +6,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const { signIn } = useAuth();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    setError(null);
+    setSuccess(false);
+
+    const { error: signInError } = await signIn({ email, password });
+
+    if (signInError) {
+      setError(signInError.message);
       setIsLoading(false);
-    }, 1000);
+    } else {
+      // Show success message before redirect
+      setSuccess(true);
+      // Keep loading state while redirecting
+      // Navigation is handled in the useAuth hook
+    }
   };
 
   return (
@@ -39,6 +53,20 @@ export default function SignInPage() {
 
           {/* Form */}
           <form onSubmit={handleSignIn} className="space-y-6">
+            {/* Error Message */}
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
+            {/* Success Message */}
+            {success && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                <p className="text-sm text-green-600">Sign in successful! Redirecting to dashboard...</p>
+              </div>
+            )}
+
             {/* Email Field */}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-semibold">

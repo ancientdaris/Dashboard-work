@@ -1,0 +1,128 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { User, AuthError } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
+
+export interface SignUpData {
+  email: string;
+  password: string;
+  fullName: string;
+  mobileNumber: string;
+  businessType: 'retailer' | 'wholesaler';
+  businessName?: string;
+  gstNumber?: string;
+  city?: string;
+}
+
+export interface SignInData {
+  email: string;
+  password: string;
+}
+
+export const useAuth = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    // Check active sessions and sets the user
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    // Listen for changes on auth state (logged in, signed out, etc.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const signUp = async (data: SignUpData): Promise<{ error: AuthError | null }> => {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            full_name: data.fullName,
+            mobile_number: data.mobileNumber,
+            business_type: data.businessType,
+            business_name: data.businessName,
+            gst_number: data.gstNumber,
+            city: data.city,
+          },
+        },
+      });
+
+      if (error) {
+        return { error };
+      }
+
+      return { error: null };
+    } catch (error) {
+      return { error: error as AuthError };
+    }
+  };
+
+  const signIn = async (data: SignInData): Promise<{ error: AuthError | null }> => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (error) {
+        return { error };
+      }
+
+      // Redirect to dashboard after successful sign in
+      router.push('/dashboard');
+      return { error: null };
+    } catch (error) {
+      return { error: error as AuthError };
+    }
+  };
+
+  const signOut = async (): Promise<{ error: AuthError | null }> => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        return { error };
+      }
+
+      router.push('/signin');
+      return { error: null };
+    } catch (error) {
+      return { error: error as AuthError };
+    }
+  };
+
+  const resetPassword = async (email: string): Promise<{ error: AuthError | null }> => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        return { error };
+      }
+
+      return { error: null };
+    } catch (error) {
+      return { error: error as AuthError };
+    }
+  };
+
+  return {
+    user,
+    loading,
+    signUp,
+    signIn,
+    signOut,
+    resetPassword,
+  };
+};

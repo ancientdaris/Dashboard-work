@@ -5,6 +5,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { useRouter } from "next/navigation";
 
 type BusinessType = "retailer" | "wholesaler" | null;
 
@@ -17,8 +19,15 @@ export default function SignUpPage() {
     mobileNumber: "",
     password: "",
     confirmPassword: "",
+    businessName: "",
+    gstNumber: "",
+    city: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const { signUp } = useAuth();
+  const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -43,11 +52,50 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    setError(null);
+
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
       setIsLoading(false);
-      // Handle final submission
-    }, 1000);
+      return;
+    }
+
+    // Validate password length
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!businessType) {
+      setError("Please select a business type");
+      setIsLoading(false);
+      return;
+    }
+
+    const { error: signUpError } = await signUp({
+      email: formData.email,
+      password: formData.password,
+      fullName: formData.fullName,
+      mobileNumber: formData.mobileNumber,
+      businessType: businessType,
+      businessName: formData.businessName,
+      gstNumber: formData.gstNumber,
+      city: formData.city,
+    });
+
+    if (signUpError) {
+      setError(signUpError.message);
+      setIsLoading(false);
+    } else {
+      setSuccess(true);
+      setIsLoading(false);
+      // Redirect to signin after 2 seconds
+      setTimeout(() => {
+        router.push('/signin');
+      }, 2000);
+    }
   };
 
   return (
@@ -82,6 +130,13 @@ export default function SignUpPage() {
           {/* Form */}
           {step === 1 ? (
             <form onSubmit={handleContinue} className="space-y-5">
+              {/* Error Message */}
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-600">{error}</p>
+                </div>
+              )}
+
               {/* Business Type Selection */}
               <div className="space-y-3">
                 <Label className="text-sm font-semibold">I am a<span className="text-red-500">*</span></Label>
@@ -207,6 +262,20 @@ export default function SignUpPage() {
             </form>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Error Message */}
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-600">{error}</p>
+                </div>
+              )}
+
+              {/* Success Message */}
+              {success && (
+                <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                  <p className="text-sm text-green-600">Account created successfully! Redirecting to sign in...</p>
+                </div>
+              )}
+
               {/* Step 2 Content - Business Information */}
               <div className="space-y-4">
                 <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
@@ -222,8 +291,11 @@ export default function SignUpPage() {
                   </Label>
                   <Input
                     id="businessName"
+                    name="businessName"
                     type="text"
                     placeholder="Your Business Name"
+                    value={formData.businessName}
+                    onChange={handleChange}
                     required
                     className="h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
                   />
@@ -235,8 +307,11 @@ export default function SignUpPage() {
                   </Label>
                   <Input
                     id="gstNumber"
+                    name="gstNumber"
                     type="text"
                     placeholder="27AABCT1234H1Z0"
+                    value={formData.gstNumber}
+                    onChange={handleChange}
                     required
                     className="h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
                   />
@@ -248,8 +323,11 @@ export default function SignUpPage() {
                   </Label>
                   <Input
                     id="city"
+                    name="city"
                     type="text"
                     placeholder="Mumbai"
+                    value={formData.city}
+                    onChange={handleChange}
                     required
                     className="h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
                   />
