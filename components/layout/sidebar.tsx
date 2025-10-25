@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/lib/hooks/useAuth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -79,6 +80,28 @@ const sidebarItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { user, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!user?.user_metadata?.full_name) return user?.email?.substring(0, 2).toUpperCase() || "U";
+    const names = user.user_metadata.full_name.split(" ");
+    return names.length > 1 
+      ? `${names[0][0]}${names[1][0]}`.toUpperCase()
+      : names[0].substring(0, 2).toUpperCase();
+  };
+
+  const getUserName = () => {
+    return user?.user_metadata?.full_name || user?.email || "User";
+  };
+
+  const getUserEmail = () => {
+    return user?.email || "";
+  };
 
   return (
     <div className={cn(
@@ -143,12 +166,12 @@ export function Sidebar() {
               <DropdownMenuTrigger asChild>
                 <div className="flex items-center gap-3 rounded-lg p-3 hover:bg-gray-100 transition-colors cursor-pointer">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                    <AvatarFallback>OR</AvatarFallback>
+                    <AvatarImage src="" alt="User" />
+                    <AvatarFallback>{getUserInitials()}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 overflow-hidden">
-                    <h3 className="truncate font-medium text-sm">Olivia Rhye</h3>
-                    <p className="truncate text-xs text-gray-500">olivia@untitledui.com</p>
+                    <h3 className="truncate font-medium text-sm">{getUserName()}</h3>
+                    <p className="truncate text-xs text-gray-500">{getUserEmail()}</p>
                   </div>
                 </div>
               </DropdownMenuTrigger>
@@ -157,7 +180,7 @@ export function Sidebar() {
                   <User className="mr-2 h-4 w-4" />
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-red-600">
+                <DropdownMenuItem className="text-red-600" onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>
