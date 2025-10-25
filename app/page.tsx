@@ -28,19 +28,18 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <main className="flex-grow pt-14 pb-16 bg-slate-50">
-
-        <div className=" w-full mx-auto relative z-10">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+        <div className="w-full h-[calc(100vh-7.5rem)] mx-auto relative z-10 overflow-hidden">
+          <div className="h-full grid lg:grid-cols-2 gap-8 lg:gap-12">
             {/* Left Column - Content */}
-            <div className="space-y-3 animate-fade-in-up px-6 md:pl-10">
+            <div className="space-y-3 animate-fade-in-up px-6 md:pl-10 flex flex-col justify-center">
               {/* Badge */}
-              <Badge variant="secondary" className="inline-flex items-center gap-1.5 px-3 py-1 text-xs bg-slate-100 border-slate-200 text-slate-700">
-                <div className="w-1.5 h-1.5 rounded-full bg-slate-900"></div>
+              <Badge variant="secondary" className=" inline-flex items-center gap-1.5 px-3 py-1 text-xs bg-slate-100 border-slate-200 text-slate-700"style={{ width: "218px" }} >
+                <div className="w-1.5 h-1.5 rounded-full bg-slate-900 " ></div>
                 Trusted by 10,000+ businesses
               </Badge>
 
               {/* Main Heading */}
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-bold tracking-tight leading-[1.1] text-slate-900" style={{ fontFamily: 'var(--font-dm-sans), var(--font-geist-sans), sans-serif' }}>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-medium  tracking-tight leading-[1.1] text-slate-900" style={{ fontFamily: 'var(--font-dm-sans), var(--font-geist-sans), sans-serif' }}>
                 India&apos;s leading B2B marketplace
               </h1>
 
@@ -86,7 +85,7 @@ export default function LandingPage() {
             </div>
 
             {/* Right Column - Image */}
-            <div className="relative h-[400px] md:h-[100vh] w-full">
+            <div className="relative w-full h-full">
               <div className="absolute inset-0 w-full h-full">
                 <img
                   src="/images/image1.png"
