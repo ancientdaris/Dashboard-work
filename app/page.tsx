@@ -63,7 +63,7 @@ export default function LandingPage() {
               </div>
 
               {/* Feature Pills */}
-              <div className="flex flex-wrap gap-2 pt-4">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 pt-4">
                 <Card className="inline-flex items-center gap-1.5 px-3 py-1.5 border-slate-200">
                   <div className="w-6 h-6 rounded bg-slate-900 flex items-center justify-center">
                     <TrendingUp className="w-3 h-3 text-white" />
