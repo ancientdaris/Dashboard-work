@@ -10,7 +10,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white text-slate-900">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
+      <nav className="relative border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
         <div className="max-w-full mx-auto px-10 h-14 flex items-center justify-between">
           <Link href="/" className="font-bold text-base tracking-tight">
             OSAS
