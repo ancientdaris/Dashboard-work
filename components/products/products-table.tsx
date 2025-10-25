@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase';
 import {
   Table,
@@ -11,10 +11,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
-import { Edit, Trash2, Eye, Package, Plus } from 'lucide-react';
+import { Edit, Trash2, Eye, Package } from 'lucide-react';
+import Image from 'next/image';
 
 type Product = {
   id: string;
@@ -36,7 +36,12 @@ type Product = {
   batch_tracking_enabled: boolean;
   barcode: string | null;
   weight: number | null;
-  dimensions: any;
+  dimensions: {
+    length?: number;
+    width?: number;
+    height?: number;
+    unit?: string;
+  } | null;
   is_dead_stock: boolean;
   dead_stock_discount: number | null;
   dead_stock_listed_at: string | null;
@@ -54,11 +59,7 @@ export function ProductsTable({ searchTerm }: ProductsTableProps) {
   const itemsPerPage = 10;
   const supabase = createClient();
 
-  useEffect(() => {
-    fetchProducts();
-  }, [page, searchTerm]);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -75,7 +76,7 @@ export function ProductsTable({ searchTerm }: ProductsTableProps) {
       const { data, count, error } = await query;
 
       if (error) throw error;
-
+      
       setProducts(data || []);
       setTotalCount(count || 0);
     } catch (error) {
@@ -83,21 +84,28 @@ export function ProductsTable({ searchTerm }: ProductsTableProps) {
     } finally {
       setLoading(false);
     }
+  }, [searchTerm, page, itemsPerPage]);
+  
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const handleEditProduct = (productId: string) => {
+    // Implement edit product logic
+    console.log('Edit product:', productId);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteProduct = async (productId: string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
     
     try {
       const { error } = await supabase
         .from('products')
         .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+        .eq('id', productId);
       
-      // Refresh the products list
-      fetchProducts();
+      if (error) throw error;
+      fetchProducts(); // Refresh the list
     } catch (error) {
       console.error('Error deleting product:', error);
     }
@@ -146,11 +154,15 @@ export function ProductsTable({ searchTerm }: ProductsTableProps) {
                   <TableCell>
                     <div className="flex items-center space-x-3">
                       {product.image_url ? (
-                        <img
-                          src={product.image_url}
-                          alt={product.name}
-                          className="h-10 w-10 rounded-md object-cover"
-                        />
+                        <div className="relative h-10 w-10">
+                          <Image
+                            src={product.image_url || '/placeholder-product.png'}
+                            alt={product.name}
+                            fill
+                            className="rounded-md object-cover"
+                            sizes="40px"
+                          />
+                        </div>
                       ) : (
                         <div className="flex h-10 w-10 items-center justify-center rounded-md bg-gray-100">
                           <Package className="h-5 w-5 text-gray-400" />
