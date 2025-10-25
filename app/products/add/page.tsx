@@ -6,9 +6,11 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { 
   ImageIcon,
   ArrowLeft,
+  Loader2,
 } from "lucide-react";
 import { 
   Select,
@@ -22,9 +24,157 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Card } from "@/components/ui/card";
+import { createClient } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
+
+interface ProductFormData {
+  name: string;
+  sku: string;
+  description: string;
+  category: string;
+  brand: string;
+  unit_price: number;
+  cost_price: number;
+  tax_rate: number;
+  hsn_code: string;
+  sac_code: string;
+  barcode: string;
+  weight: number;
+  dimensions: {
+    length: number;
+    width: number;
+    height: number;
+    unit: string;
+  } | null;
+  is_active: boolean;
+  batch_tracking_enabled: boolean;
+  expiry_date: string;
+}
 
 export default function NewProductPage() {
-  const [productStatus, setProductStatus] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
+  const supabase = createClient();
+  const [loading, setLoading] = useState(false);
+  
+  const [formData, setFormData] = useState<ProductFormData>({
+    name: '',
+    sku: '',
+    description: '',
+    category: '',
+    brand: '',
+    unit_price: 0,
+    cost_price: 0,
+    tax_rate: 18,
+    hsn_code: '',
+    sac_code: '',
+    barcode: '',
+    weight: 0,
+    dimensions: null,
+    is_active: true,
+    batch_tracking_enabled: false,
+    expiry_date: '',
+  });
+
+  const handleInputChange = (field: keyof ProductFormData, value: string | number | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleDimensionsChange = (dimensions: string) => {
+    // Parse dimensions like "10 × 20 × 30"
+    const parts = dimensions.split('×').map(p => parseFloat(p.trim()));
+    if (parts.length === 3 && parts.every(p => !isNaN(p))) {
+      setFormData(prev => ({
+        ...prev,
+        dimensions: {
+          length: parts[0],
+          width: parts[1],
+          height: parts[2],
+          unit: 'cm'
+        }
+      }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    if (!formData.name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Product name is required",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (!formData.sku.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "SKU is required",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (formData.unit_price <= 0) {
+      toast({
+        title: "Validation Error",
+        description: "Unit price must be greater than 0",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+    
+    setLoading(true);
+    
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase
+        .from('products')
+        .insert({
+          name: formData.name,
+          sku: formData.sku,
+          description: formData.description || null,
+          category: formData.category || null,
+          brand: formData.brand || null,
+          unit_price: formData.unit_price,
+          cost_price: formData.cost_price || null,
+          tax_rate: formData.tax_rate,
+          hsn_code: formData.hsn_code || null,
+          sac_code: formData.sac_code || null,
+          barcode: formData.barcode || null,
+          weight: formData.weight || null,
+          dimensions: formData.dimensions,
+          is_active: formData.is_active,
+          batch_tracking_enabled: formData.batch_tracking_enabled,
+          expiry_date: formData.expiry_date || null,
+        } as any)
+        .select()
+        .single() as any);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Product created successfully",
+      });
+
+      router.push('/products');
+    } catch (error) {
+      console.error('Error creating product:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create product",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex h-screen">
@@ -46,13 +196,25 @@ export default function NewProductPage() {
                   Back to Products
                 </Link>
               </Button>
-              <Button className="bg-slate-900 hover:bg-slate-800 shrink-0">
-                Create Product
+              <Button 
+                className="bg-slate-900 hover:bg-slate-800 shrink-0"
+                onClick={handleSubmit}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Product'
+                )}
               </Button>
             </div>
           </div>
 
           {/* Content */}
+          <form onSubmit={handleSubmit}>
           <Card className="p-6 transition-all hover:shadow-md">
             <div className="grid gap-8 md:grid-cols-2">
               {/* Left Column - Basic Information */}
@@ -65,23 +227,35 @@ export default function NewProductPage() {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Product Name <span className="text-red-500">*</span></Label>
-                      <Input placeholder="Enter product name" />
+                      <Input 
+                        placeholder="Enter product name" 
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        required
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>SKU <span className="text-red-500">*</span></Label>
-                      <Input placeholder="Enter SKU" />
+                      <Input 
+                        placeholder="Enter SKU" 
+                        value={formData.sku}
+                        onChange={(e) => handleInputChange('sku', e.target.value)}
+                        required
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>Description</Label>
                       <Textarea 
                         placeholder="Enter product description"
                         className="min-h-[120px]"
+                        value={formData.description}
+                        onChange={(e) => handleInputChange('description', e.target.value)}
                       />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div className="space-y-2">
-                        <Label>Category <span className="text-red-500">*</span></Label>
-                        <Select>
+                        <Label>Category</Label>
+                        <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select Category" />
                           </SelectTrigger>
@@ -90,23 +264,19 @@ export default function NewProductPage() {
                               <SelectItem value="electronics">Electronics</SelectItem>
                               <SelectItem value="clothing">Clothing</SelectItem>
                               <SelectItem value="food">Food</SelectItem>
+                              <SelectItem value="beverages">Beverages</SelectItem>
+                              <SelectItem value="home-goods">Home Goods</SelectItem>
                             </SelectGroup>
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-2">
                         <Label>Brand</Label>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select Brand" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              <SelectItem value="brand1">Brand 1</SelectItem>
-                              <SelectItem value="brand2">Brand 2</SelectItem>
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
+                        <Input 
+                          placeholder="Enter brand name" 
+                          value={formData.brand}
+                          onChange={(e) => handleInputChange('brand', e.target.value)}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Unit <span className="text-red-500">*</span></Label>
@@ -134,11 +304,19 @@ export default function NewProductPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>HSN Code</Label>
-                      <Input placeholder="Enter HSN code" />
+                      <Input 
+                        placeholder="Enter HSN code" 
+                        value={formData.hsn_code}
+                        onChange={(e) => handleInputChange('hsn_code', e.target.value)}
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label>GST Rate (%)</Label>
-                      <Input type="number" defaultValue="18" />
+                      <Label>Tax Rate (%)</Label>
+                      <Input 
+                        type="number" 
+                        value={formData.tax_rate}
+                        onChange={(e) => handleInputChange('tax_rate', parseFloat(e.target.value) || 0)}
+                      />
                     </div>
                   </div>
                 </div>
@@ -153,11 +331,18 @@ export default function NewProductPage() {
                     </div>
                     <div className="space-y-2">
                       <Label>Weight (kg)</Label>
-                      <Input type="number" defaultValue="0" />
+                      <Input 
+                        type="number" 
+                        value={formData.weight}
+                        onChange={(e) => handleInputChange('weight', parseFloat(e.target.value) || 0)}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>Dimensions</Label>
-                      <Input placeholder="L × W × H (cm)" />
+                      <Input 
+                        placeholder="L × W × H (cm)" 
+                        onChange={(e) => handleDimensionsChange(e.target.value)}
+                      />
                     </div>
                   </div>
                 </div>
@@ -176,11 +361,11 @@ export default function NewProductPage() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <Switch
-                        checked={productStatus}
-                        onCheckedChange={setProductStatus}
+                        checked={formData.is_active}
+                        onCheckedChange={(checked) => handleInputChange('is_active', checked)}
                       />
                       <span className="text-sm font-medium">
-                        {productStatus ? "Active" : "Inactive"}
+                        {formData.is_active ? "Active" : "Inactive"}
                       </span>
                     </div>
                   </div>
@@ -208,27 +393,30 @@ export default function NewProductPage() {
                   <div className="space-y-4">
                     <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-2">
-                        <Label>Wholesale Price <span className="text-red-500">*</span></Label>
+                        <Label>Unit Price <span className="text-red-500">*</span></Label>
                         <div className="relative">
                           <span className="absolute left-3 top-2.5 text-muted-foreground">₹</span>
-                          <Input type="number" defaultValue="0" className="pl-7" />
-                          <span className="absolute right-3 top-2.5 text-muted-foreground">.00</span>
+                          <Input 
+                            type="number" 
+                            step="0.01"
+                            value={formData.unit_price}
+                            onChange={(e) => handleInputChange('unit_price', parseFloat(e.target.value) || 0)}
+                            className="pl-7" 
+                            required
+                          />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label>Retail Price</Label>
+                        <Label>Cost Price</Label>
                         <div className="relative">
                           <span className="absolute left-3 top-2.5 text-muted-foreground">₹</span>
-                          <Input type="number" defaultValue="0" className="pl-7" />
-                          <span className="absolute right-3 top-2.5 text-muted-foreground">.00</span>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>MRP</Label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-2.5 text-muted-foreground">₹</span>
-                          <Input type="number" defaultValue="0" className="pl-7" />
-                          <span className="absolute right-3 top-2.5 text-muted-foreground">.00</span>
+                          <Input 
+                            type="number" 
+                            step="0.01"
+                            value={formData.cost_price}
+                            onChange={(e) => handleInputChange('cost_price', parseFloat(e.target.value) || 0)}
+                            className="pl-7" 
+                          />
                         </div>
                       </div>
                     </div>
@@ -249,13 +437,18 @@ export default function NewProductPage() {
                     </div>
                     <div className="space-y-2">
                       <Label>Barcode</Label>
-                      <Input placeholder="Scan or enter barcode" />
+                      <Input 
+                        placeholder="Scan or enter barcode" 
+                        value={formData.barcode}
+                        onChange={(e) => handleInputChange('barcode', e.target.value)}
+                      />
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </Card>
+          </form>
         </div>
       </div>
     </div>

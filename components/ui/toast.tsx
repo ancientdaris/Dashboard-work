@@ -4,7 +4,7 @@ import * as React from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface ToastProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface ToastProps extends React.HTMLAttributes<HTMLDivElement> {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   variant?: 'default' | 'destructive';
@@ -12,6 +12,8 @@ interface ToastProps extends React.HTMLAttributes<HTMLDivElement> {
   description?: string;
   duration?: number;
 }
+
+export type ToastActionElement = React.ReactElement;
 
 const Toast = React.forwardRef<HTMLDivElement, ToastProps>(
   ({ className, variant = 'default', title, description, duration = 3000, open = true, onOpenChange, ...props }, ref) => {

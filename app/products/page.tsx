@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Sidebar } from "@/components/layout/sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { ProductsTable } from "@/components/products/products-table";
@@ -127,21 +128,33 @@ export default function ProductsPage() {
             <div className="grid gap-4 mb-6 md:grid-cols-3">
               <Card className="p-4">
                 <p className="text-sm text-muted-foreground">Total Products</p>
-                <p className="text-2xl font-bold mt-1 text-blue-600">
-                  {loading ? '...' : stats.total.toLocaleString()}
-                </p>
+                {loading ? (
+                  <Skeleton className="h-8 w-20 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold mt-1 text-blue-600">
+                    {stats.total.toLocaleString()}
+                  </p>
+                )}
               </Card>
               <Card className="p-4">
                 <p className="text-sm text-muted-foreground">Out of Stock</p>
-                <p className="text-2xl font-bold mt-1 text-red-600">
-                  {loading ? '...' : stats.outOfStock.toLocaleString()}
-                </p>
+                {loading ? (
+                  <Skeleton className="h-8 w-20 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold mt-1 text-red-600">
+                    {stats.outOfStock.toLocaleString()}
+                  </p>
+                )}
               </Card>
               <Card className="p-4">
                 <p className="text-sm text-muted-foreground">Low Stock</p>
-                <p className="text-2xl font-bold mt-1 text-yellow-600">
-                  {loading ? '...' : stats.lowStock.toLocaleString()}
-                </p>
+                {loading ? (
+                  <Skeleton className="h-8 w-20 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold mt-1 text-yellow-600">
+                    {stats.lowStock.toLocaleString()}
+                  </p>
+                )}
               </Card>
             </div>
 
