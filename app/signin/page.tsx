@@ -130,15 +130,9 @@ export default function SignInPage() {
             </Button>
           </form>
 
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200"></div>
-            </div>
-          </div>
 
           {/* Sign Up Link */}
-          <div className="text-center space-y-2">
+          <div className="text-left space-y-2">
             <p className="text-slate-600 font-normal">
               Don&apos;t have an account?
             </p>
