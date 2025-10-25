@@ -14,6 +14,7 @@ import {
   RotateCw
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 export default function DeliveriesPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -24,8 +25,9 @@ export default function DeliveriesPage() {
   };
 
   return (
-    <div className="flex h-screen">
-      <Sidebar />
+    <ProtectedRoute>
+      <div className="flex h-screen">
+        <Sidebar />
       <div className="flex-1 space-y-6 p-8 overflow-auto bg-gray-50">
         {/* Header */}
         <div className="flex items-start justify-between">
@@ -154,5 +156,6 @@ export default function DeliveriesPage() {
         </Tabs>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

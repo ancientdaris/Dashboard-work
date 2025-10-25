@@ -33,6 +33,7 @@ import {
   Filter
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Sample retailer data
 const retailers = [
@@ -76,15 +77,14 @@ export default function RetailersPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
-    <div className="flex h-screen">
-      <Sidebar />
-      <div className="flex-1 space-y-6 p-8 overflow-auto bg-gray-50">
+    <ProtectedRoute>
+      <div className="flex h-screen">
+        <Sidebar />
+        <div className="flex-1 space-y-6 p-8 overflow-auto bg-gray-50">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-              <span>Retailers</span>
-            </div>
+          
             <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Retailers</h1>
             <p className="text-muted-foreground mt-1">
               Manage your retailer network and relationships
@@ -331,5 +331,6 @@ export default function RetailersPage() {
         </Card>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

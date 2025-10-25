@@ -21,11 +21,13 @@ import {
   RotateCcw
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 export default function ReportsPage() {
   return (
-    <div className="flex h-screen">
-      <Sidebar />
+    <ProtectedRoute>
+      <div className="flex h-screen">
+        <Sidebar />
       <div className="flex-1 overflow-auto bg-gray-50">
        
 
@@ -852,5 +854,6 @@ export default function ReportsPage() {
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

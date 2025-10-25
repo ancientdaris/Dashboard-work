@@ -12,25 +12,27 @@ import {
   FileText
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 export default function InvoicesPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
-    <div className="flex h-screen">
-      <Sidebar />
-      <div className="flex-1 overflow-auto bg-gray-50">
-        {/* Main Content */}
-        <div className="p-8 space-y-6">
-          {/* Page Header */}
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Invoices</h1>
-              <p className="text-muted-foreground mt-1">
-                Manage invoices, payments, and GST compliance
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
+    <ProtectedRoute>
+      <div className="flex h-screen">
+        <Sidebar />
+        <div className="flex-1 overflow-auto bg-gray-50">
+          {/* Main Content */}
+          <div className="p-8 space-y-6">
+            {/* Page Header */}
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Invoices</h1>
+                <p className="text-muted-foreground mt-1">
+                  Manage invoices, payments, and GST compliance
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
               <Button variant="outline" className="flex items-center gap-2">
                 <Filter className="h-4 w-4" />
                 <span>Filters</span>
@@ -121,5 +123,6 @@ export default function InvoicesPage() {
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

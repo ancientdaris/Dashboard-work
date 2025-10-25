@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Sidebar } from "@/components/layout/sidebar";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { useState } from "react";
 import {
   Search,
@@ -21,21 +22,22 @@ export default function ProductsPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   return (
-    <div className="flex h-screen">
-      <Sidebar />
+    <ProtectedRoute>
+      <div className="flex h-screen">
+        <Sidebar />
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-gray-50">
-        <div className="p-8">
-          {/* Header */}
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Product Catalog</h1>
-              <p className="text-muted-foreground">
-                Manage your product inventory and pricing
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto bg-gray-50">
+          <div className="p-8">
+            {/* Header */}
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
+              <div>
+                <h1 className="text-3xl font-semibold text-gray-900">Product Catalog</h1>
+                <p className="text-muted-foreground">
+                  Manage your product inventory and pricing
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
               <Button variant="outline" className="flex items-center gap-2">
                 <Import className="h-4 w-4" />
                 Import
@@ -121,5 +123,6 @@ export default function ProductsPage() {
         </div>
       </main>
     </div>
+    </ProtectedRoute>
   );
 }

@@ -4,6 +4,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/layout/sidebar";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Link from "next/link";
 import {
   CreditCard,
@@ -17,20 +18,22 @@ import {
 
 export default function DashboardPage() {
   return (
-    <div className="flex h-screen">
-      <Sidebar />
+    <ProtectedRoute>
+      <div className="flex h-screen">
+        <Sidebar />
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-gray-50">
-        <div className="container mx-auto p-8 max-w-7xl">
-          {/* Header */}
-          <div className="mb-8 space-y-2">
-            <h1 className="text-3xl font-semibold tracking-tight text-gray-900">
-              Welcome back to Phatkure Wholesale Distributors
-            </h1>
-            <p className="text-muted-foreground">
-              Here&apos;s what&apos;s happening with your wholesale business today
-            </p>
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto bg-gray-50">
+          <div className="container p-8 max-w-7xl">
+            {/* Header */}
+            <div className="mb-8 space-y-2">
+              <h1 className="text-3xl font-semibold tracking-tight text-gray-900">
+                Welcome back to Phatkure Wholesale Distributors
+              </h1>
+              <p className="text-muted-foreground">
+                Here&apos;s what&apos;s happening with your wholesale business today
+              </p>
+           
           </div>
 
           {/* Search and Date Filter */}
@@ -187,5 +190,6 @@ export default function DashboardPage() {
         </div>
       </main>
     </div>
+    </ProtectedRoute>
   );
 }
