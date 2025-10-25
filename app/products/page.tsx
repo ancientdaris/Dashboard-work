@@ -1,133 +1,123 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from 'react';
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Sidebar } from "@/components/layout/sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { useState } from "react";
+import { ProductsTable } from "@/components/products/products-table";
+import { Plus, Import, Download, Package, Search, X, ChevronDown } from "lucide-react";
+import Link from "next/link";
 import {
-  Search,
-  Package,
-  Plus,
-  Import,
-  Download,
-  Grid2X2,
-  List,
-  Filter,
-} from "lucide-react";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function ProductsPage() {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  // Sample stats - replace with real data from your API
+  const stats = [
+    { label: 'Total Products', value: '0', color: 'text-blue-600' },
+    { label: 'Out of Stock', value: '0', color: 'text-red-600' },
+    { label: 'Low Stock', value: '0', color: 'text-yellow-600' },
+  ];
+
+  const [searchQuery, setSearchQuery] = useState('');
 
   return (
     <ProtectedRoute>
-      <div className="flex h-screen">
+      <div className="flex min-h-screen">
         <Sidebar />
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto bg-gray-50">
-          <div className="p-8">
+          <div className="p-6">
             {/* Header */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
               <div>
-                <h1 className="text-3xl font-semibold text-gray-900">Product Catalog</h1>
+                <h1 className="text-2xl font-bold tracking-tight">Products</h1>
                 <p className="text-muted-foreground">
-                  Manage your product inventory and pricing
+                  Manage your product catalog and inventory
                 </p>
               </div>
-              <div className="flex items-center gap-3">
-              <Button variant="outline" className="flex items-center gap-2">
-                <Import className="h-4 w-4" />
-                Import
-              </Button>
-              <Button variant="outline" className="flex items-center gap-2">
-                <Download className="h-4 w-4" />
-                Export All
-              </Button>
-              <Button asChild className="flex items-center gap-2">
-                <Link href="/products/add">
-                  <Plus className="h-4 w-4" />
-                  Add Product
-                </Link>
-              </Button>
-            </div>
-          </div>
-
-          {/* Search and Filters */}
-          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search products by name, SKU, or description..."
-                className="pl-10 w-full"
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <Button variant="outline" className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                Filters
-              </Button>
-              <Separator orientation="vertical" className="h-6" />
-              <div className="flex items-center gap-1 rounded-md border bg-white p-1">
-                <Button
-                  variant={viewMode === "grid" ? "secondary" : "ghost"}
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setViewMode("grid")}
-                >
-                  <Grid2X2 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "list" ? "secondary" : "ghost"}
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setViewMode("list")}
-                >
-                  <List className="h-4 w-4" />
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Search products..."
+                    className="pl-9 pr-8 w-[200px] sm:w-[250px] md:w-[300px]"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  {searchQuery && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full"
+                      onClick={() => setSearchQuery('')}
+                    >
+                      <X className="h-4 w-4" />
+                      <span className="sr-only">Clear search</span>
+                    </Button>
+                  )}
+                </div>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-9">
+                      <span className="hidden sm:inline">Products</span>
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem asChild>
+                      <Link href="/products/add" className="cursor-pointer">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Product
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Import className="mr-2 h-4 w-4" />
+                      Import
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Download className="mr-2 h-4 w-4" />
+                      Export
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                
+                <Button asChild size="sm" className="h-9">
+                  <Link href="/products/add">
+                    <Plus className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Add Product</span>
+                  </Link>
                 </Button>
               </div>
             </div>
-          </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { label: "Total Products", value: "0" },
-              { label: "Filtered Results", value: "0" },
-              { label: "In Stock", value: "0", color: "text-green-600" },
-              { label: "Out of Stock", value: "0", color: "text-red-600" },
-            ].map((stat) => (
-              <Card key={stat.label} className="p-4">
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
-                <p className={`text-2xl font-bold mt-1 ${stat.color || ""}`}>
-                  {stat.value}
-                </p>
-              </Card>
-            ))}
-          </div>
-
-          {/* Empty State */}
-          <Card className="flex flex-col items-center justify-center p-8 text-center">
-            <div className="rounded-full bg-gray-100 p-3 mb-4">
-              <Package className="h-6 w-6 text-gray-600" />
+            {/* Stats */}
+            <div className="grid gap-4 mb-6 md:grid-cols-3">
+              {stats.map((stat) => (
+                <Card key={stat.label} className="p-4">
+                  <p className="text-sm text-muted-foreground">{stat.label}</p>
+                  <p className={`text-2xl font-bold mt-1 ${stat.color}`}>
+                    {stat.value}
+                  </p>
+                </Card>
+              ))}
             </div>
-            <h3 className="font-semibold mb-1">No products found</h3>
-            <p className="text-muted-foreground mb-4">
-              Start building your catalog by adding your first product
-            </p>
-            <Button asChild>
-              <Link href="/products/add" className="flex items-center">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Your First Product
-              </Link>
-            </Button>
-          </Card>
-        </div>
-      </main>
-    </div>
+
+            {/* Products Table */}
+            <div className="bg-white rounded-lg border shadow-sm">
+              <ProductsTable searchTerm={searchQuery} />
+            </div>
+          </div>
+        </main>
+      </div>
     </ProtectedRoute>
   );
 }

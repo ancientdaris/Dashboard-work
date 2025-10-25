@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/utils/supabase/client';
+import { createClient } from '@/lib/supabase';
+const supabase = createClient();
 import { format } from 'date-fns';
 import { Activity, Clock, User, HardDrive, Globe, Smartphone } from 'lucide-react';
 import { Skeleton } from '../../components/ui/skeleton';
@@ -32,10 +33,10 @@ export function ActivityLog() {
     const fetchActivityLogs = async () => {
       try {
         setLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (!session) {
-          setError('Not authenticated');
+        if (sessionError || !session) {
+          setError('Please sign in to view activity logs');
           setLoading(false);
           return;
         }
@@ -98,7 +99,17 @@ export function ActivityLog() {
   }
 
   if (error) {
-    return <div className="text-red-500">{error}</div>;
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center text-red-600 dark:border-red-900 dark:bg-red-900/20">
+        <p>{error}</p>
+        <button
+          onClick={() => window.location.href = '/signin'}
+          className="mt-4 inline-flex items-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+        >
+          Sign In
+        </button>
+      </div>
+    );
   }
 
   if (logs.length === 0) {
