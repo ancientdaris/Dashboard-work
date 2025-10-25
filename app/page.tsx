@@ -12,7 +12,7 @@ export default function LandingPage() {
     <div className="min-h-screen flex flex-col bg-white text-slate-900">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
-        <div className="max-w-full mx-auto px-10 h-14 flex items-center justify-between">
+        <div className="max-w-full mx-auto px-6 lg:px-10 h-14 flex items-center justify-between">
           <Link href="/" className="font-bold text-base tracking-tight">
             OSAS
           </Link>
@@ -70,7 +70,7 @@ export default function LandingPage() {
                   </div>
                   <span className="text-xs text-slate-700 font-semibold">Real-time Inventory</span>
                 </Card>
-                <Card className="inline-flex items-center gap-1.5 px-3 py-1.5 border-slate-200">
+                <Card className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 border-slate-200">
                   <div className="w-6 h-6 rounded bg-slate-900 flex items-center justify-center">
                     <Shield className="w-3 h-3 text-white" />
                   </div>
