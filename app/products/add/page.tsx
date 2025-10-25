@@ -191,7 +191,7 @@ export default function NewProductPage() {
 
                 <div className="space-y-6">
                   <h2 className="text-lg font-semibold">Product Images</h2>
-                  <div className="border-2 border-dashed rounded-lg p-8 bg-white/50 border-muted min-h-[300px] flex items-center justify-center">
+                  <div className="border-2 border-dashed rounded-lg p-8 bg-white/50 border-muted min-h-[247px] flex items-center justify-center">
                     <div className="flex flex-col items-center justify-center gap-4 text-center">
                       <ImageIcon className="h-12 w-12 text-muted-foreground" />
                       <Button variant="outline">Upload Images</Button>
