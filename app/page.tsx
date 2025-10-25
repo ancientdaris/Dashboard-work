@@ -8,9 +8,9 @@ import { ArrowRight, TrendingUp, Shield, Zap } from "lucide-react";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white text-slate-900">
+    <div className="min-h-screen flex flex-col bg-white text-slate-900">
       {/* Navigation */}
-      <nav className="relative border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
         <div className="max-w-full mx-auto px-10 h-14 flex items-center justify-between">
           <Link href="/" className="font-bold text-base tracking-tight">
             OSAS
@@ -27,12 +27,12 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center overflow-hidden bg-slate-50">
+      <main className="flex-grow pt-14 pb-16 bg-slate-50">
 
         <div className=" w-full mx-auto relative z-10">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Left Column - Content */}
-            <div className="space-y-3 animate-fade-in-up pl-10">
+            <div className="space-y-3 animate-fade-in-up px-6 md:pl-10">
               {/* Badge */}
               <Badge variant="secondary" className="inline-flex items-center gap-1.5 px-3 py-1 text-xs bg-slate-100 border-slate-200 text-slate-700">
                 <div className="w-1.5 h-1.5 rounded-full bg-slate-900"></div>
@@ -86,7 +86,7 @@ export default function LandingPage() {
             </div>
 
             {/* Right Column - Image */}
-            <div className="relative h-full min-h-[100vh] w-full">
+            <div className="relative h-[400px] md:h-[100vh] w-full">
               <div className="absolute inset-0 w-full h-full">
                 <img
                   src="/images/image1.png"
@@ -97,11 +97,10 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-      </section>
-
+      </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white">
+      <footer className="fixed bottom-0 left-0 right-0 border-t border-slate-200 bg-white z-40">
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="space-y-1 text-center">
             <p className="text-sm font-semibold tracking-tight">OSAS - Online Sales and Supply System</p>
