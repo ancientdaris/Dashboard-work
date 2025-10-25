@@ -124,16 +124,19 @@ function SettingsContent() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: profile.full_name,
-          business_name: profile.business_name,
-          business_type: profile.business_type,
-          gst_number: profile.gst_number,
-          pan_number: profile.pan_number,
-          updated_at: new Date().toISOString(),
-        })
+      const updateData = {
+        full_name: profile.full_name,
+        business_name: profile.business_name,
+        business_type: profile.business_type,
+        gst_number: profile.gst_number,
+        pan_number: profile.pan_number,
+        updated_at: new Date().toISOString(),
+      };
+      
+      const { error } = await (supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('profiles') as any)
+        .update(updateData)
         .eq('id', user.id);
 
       if (error) throw error;

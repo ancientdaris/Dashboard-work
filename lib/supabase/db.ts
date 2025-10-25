@@ -36,7 +36,7 @@ export async function fetchTableData<T extends TableName>(
   table: T,
   options: {
     columns?: string;
-    filters?: Record<string, unknown>;
+    filters?: Partial<TableRow<T>>;
     orderBy?: { column: string; ascending: boolean };
     limit?: number;
     offset?: number;
@@ -48,13 +48,9 @@ export async function fetchTableData<T extends TableName>(
     // Initialize query with proper type
     let query = (supabase as SupabaseClient<Database>).from(table).select(columns);
 
-    // Apply filters
-    if (filters && typeof filters === 'object') {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          query = query.eq(key as string, value as any);
-        }
-      });
+    // Apply filters using match for exact equality on multiple columns
+    if (filters && Object.keys(filters).length > 0) {
+      query = query.match(filters as Partial<TableRow<T>>) as typeof query;
     }
 
     // Apply ordering
@@ -104,14 +100,17 @@ export async function fetchById<T extends TableName>(
   columns: string = '*'
 ): Promise<DbResult<TableRow<T>>> {
   try {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await (supabase
       .from(table)
-      .select(columns)
-      .eq('id', id)
-      .single();
-    
+      .select(columns || '*')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .eq('id', id as never) as any) as { data: TableRow<T>[] | null; error: Error | null };
+
     if (error) throw error;
-    return { data, error: null };
+    return { 
+      data: data && data.length > 0 ? data[0] : null, 
+      error: null 
+    };
   } catch (error) {
     console.error(`Error fetching ${table} with id ${id}:`, error);
     return { data: null, error: error as Error };
@@ -129,14 +128,18 @@ export async function insertRecord<T extends TableName>(
   record: Omit<TableInsert<T>, 'id' | 'created_at' | 'updated_at'>
 ): Promise<DbResult<TableRow<T>>> {
   try {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await (supabase
       .from(table)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .insert(record as any)
-      .select()
-      .single();
-    
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .select() as any) as { data: TableRow<T>[] | null; error: Error | null };
+
     if (error) throw error;
-    return { data, error: null };
+    return { 
+      data: data && data.length > 0 ? data[0] : null, 
+      error: null 
+    };
   } catch (error) {
     console.error(`Error inserting into ${table}:`, error);
     return { data: null, error: error as Error };
@@ -156,15 +159,19 @@ export async function updateRecord<T extends TableName>(
   updates: Partial<TableRow<T>>
 ): Promise<DbResult<TableRow<T>>> {
   try {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await (supabase
       .from(table)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .update(updates as any)
-      .eq('id', id)
-      .select()
-      .single();
-    
+      .eq('id', id as never)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .select() as any) as { data: TableRow<T>[] | null; error: Error | null };
+
     if (error) throw error;
-    return { data, error: null };
+    return { 
+      data: data && data.length > 0 ? data[0] : null, 
+      error: null 
+    };
   } catch (error) {
     console.error(`Error updating ${table} with id ${id}:`, error);
     return { data: null, error: error as Error };
@@ -182,10 +189,11 @@ export async function deleteRecord<T extends TableName>(
   id: string
 ): Promise<{ error: Error | PostgrestError | null }> {
   try {
-    const { error } = await (supabase as any)
+    const { error } = await (supabase as SupabaseClient<Database>)
       .from(table)
       .delete()
-      .eq('id', id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .eq('id', id as never) as any;
     
     if (error) throw error;
     return { error: null };
@@ -206,13 +214,17 @@ export async function executeSql<T = unknown>(
   params?: Record<string, unknown>
 ): Promise<DbResult<T[]>> {
   try {
-    const { data, error } = await (supabase as any).rpc('execute_sql', {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response = await ((supabase as SupabaseClient<Database>).rpc as any)('execute_sql', {
       query: sql,
       params: params || {}
     });
-    
+
+    const data = (response as { data: T[] | null }).data ?? null;
+    const error = (response as { error: PostgrestError | null }).error;
+
     if (error) throw error;
-    return { data, error: null };
+    return { data: data ?? [], error: null };
   } catch (error) {
     console.error('Error executing SQL:', error);
     return { data: null, error: error as Error };

@@ -95,18 +95,18 @@ export function Sidebar() {
     if (user) {
       fetchProfileName();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchProfileName = async () => {
     try {
       if (!user) return;
       
-      const { data } = await supabase
+      const { data } = await (supabase
         .from('profiles')
         .select('full_name')
         .eq('id', user.id)
-        .single();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .single() as any) as { data: { full_name: string | null } | null };
 
       if (data?.full_name) {
         setProfileName(data.full_name);
