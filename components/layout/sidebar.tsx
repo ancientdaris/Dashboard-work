@@ -146,7 +146,7 @@ export function Sidebar() {
   return (
     <div className={cn(
       "flex h-screen flex-col border-r bg-white transition-all duration-300 ease-in-out",
-      isCollapsed ? "w-16" : "w-55"
+      isCollapsed ? "w-16" : "w-full lg:w-55"
     )}>
       {/* Logo */}
       <div className="flex h-14 items-center border-b px-4 justify-between overflow-hidden">
