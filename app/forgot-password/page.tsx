@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Mail } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 
 export default function ForgotPasswordPage() {
@@ -25,8 +25,9 @@ export default function ForgotPasswordPage() {
       await resetPassword(email);
       setSuccess(true);
       setEmail("");
-    } catch (err: any) {
-      setError(err.message || "Failed to send reset email. Please try again.");
+    } catch (err: unknown) {
+      const error = err as Error;
+      setError(error.message || "Failed to send reset email. Please try again.");
     } finally {
       setIsLoading(false);
     }

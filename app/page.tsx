@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { ArrowRight, TrendingUp, Shield, Zap } from "lucide-react";
 
 export default function LandingPage() {
@@ -88,17 +89,23 @@ export default function LandingPage() {
             <div className="relative w-full h-full">
               {/* Background Image */}
               <div className="relative w-full h-full overflow-hidden shadow-2xl">
-                <img
+                <Image
                   src="/images/image1.png"
                   alt="Dashboard preview background"
                   className="w-full h-full object-cover"
+                  width={800}
+                  height={600}
+                  priority
                 />
                 {/* Floating Image */}
                 <div className="absolute inset-0 m-auto w-3/4 h-3/4 rounded-md overflow-hidden shadow-2xl">
-                  <img
+                  <Image
                     src="/images/localhost_3000_.png"
                     alt="Dashboard preview floating"
-                    className="w-full h-full object-cover "
+                    className="w-full h-full object-cover"
+                    width={600}
+                    height={450}
+                    priority
                   />
                 </div>
               </div>
