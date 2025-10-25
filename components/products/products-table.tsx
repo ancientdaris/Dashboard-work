@@ -84,7 +84,7 @@ export function ProductsTable({ searchTerm }: ProductsTableProps) {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, page, itemsPerPage]);
+  }, [searchTerm, page, itemsPerPage, supabase]);
   
   useEffect(() => {
     fetchProducts();
@@ -93,6 +93,7 @@ export function ProductsTable({ searchTerm }: ProductsTableProps) {
   const handleEditProduct = (productId: string) => {
     // Implement edit product logic
     console.log('Edit product:', productId);
+    // TODO: Navigate to edit page or open edit modal
   };
 
   const handleDeleteProduct = async (productId: string) => {
@@ -204,7 +205,11 @@ export function ProductsTable({ searchTerm }: ProductsTableProps) {
                       <Button variant="ghost" size="icon">
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon">
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => handleEditProduct(product.id)}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button

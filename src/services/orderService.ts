@@ -106,8 +106,7 @@ export async function createOrder(orderData: {
 
 export async function updateOrderStatus(
   orderId: string,
-  status: OrderStatus,
-  updatedBy: string
+  status: OrderStatus
 ): Promise<{ data: Order | null; error: Error | null }> {
   return updateRecord(
     TABLES.ORDERS,
@@ -160,12 +159,12 @@ export async function getOrdersByRetailer(
 
 export async function getOrderItems(
   orderId: string
-): Promise<{ data: Array<OrderItem & { product: any }> | null; error: Error | null }> {
+): Promise<{ data: Array<OrderItem & { product: Product }> | null; error: Error | null }> {
   return fetchTableData(
     TABLES.ORDER_ITEMS,
     {
       columns: '*, product:products(*)',
       filters: { order_id: orderId }
     }
-  ) as Promise<{ data: Array<OrderItem & { product: any }> | null; error: Error | null }>;
+  ) as Promise<{ data: Array<OrderItem & { product: Product }> | null; error: Error | null }>;
 }

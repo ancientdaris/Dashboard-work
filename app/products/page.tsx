@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,11 +27,7 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const supabase = createClient();
 
-  useEffect(() => {
-    fetchProductStats();
-  }, []);
-
-  const fetchProductStats = async () => {
+  const fetchProductStats = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -63,7 +59,11 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
+
+  useEffect(() => {
+    fetchProductStats();
+  }, [fetchProductStats]);
 
   return (
     <ProtectedRoute>

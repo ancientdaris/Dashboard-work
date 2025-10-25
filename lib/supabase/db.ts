@@ -1,13 +1,5 @@
-import { createClient, PostgrestError } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
-
-type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
 
 // Type for table names
 type TableName = keyof Database['public']['Tables'];
@@ -22,13 +14,6 @@ type TableInsert<T extends TableName> = Database['public']['Tables'][T]['Insert'
 type DbResult<T> = {
   data: T | null;
   error: Error | PostgrestError | null;
-};
-
-// Type for filter operations
-type FilterOperation = {
-  column: string;
-  operator: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'like' | 'ilike' | 'in';
-  value: unknown;
 };
 
 // Initialize the Supabase client with your project URL and anon key
@@ -61,13 +46,13 @@ export async function fetchTableData<T extends TableName>(
     const { columns = '*', filters = {}, orderBy, limit, offset } = options;
     
     // Initialize query with proper type
-    let query = (supabase as any).from(table).select(columns);
+    let query = (supabase as SupabaseClient<Database>).from(table).select(columns);
 
     // Apply filters
     if (filters && typeof filters === 'object') {
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          query = query.eq(key, value);
+          query = query.eq(key as string, value as any);
         }
       });
     }
@@ -138,7 +123,7 @@ export async function insertRecord<T extends TableName>(
   try {
     const { data, error } = await (supabase as any)
       .from(table)
-      .insert(record)
+      .insert(record as any)
       .select()
       .single();
     
@@ -163,9 +148,9 @@ export async function updateRecord<T extends TableName>(
   updates: Partial<TableRow<T>>
 ): Promise<DbResult<TableRow<T>>> {
   try {
-const { data, error } = await (supabase as any)
+    const { data, error } = await (supabase as any)
       .from(table)
-      .update(updates)
+      .update(updates as any)
       .eq('id', id)
       .select()
       .single();
