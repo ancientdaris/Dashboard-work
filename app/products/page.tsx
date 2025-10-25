@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -46,9 +47,11 @@ export default function ProductsPage() {
                 <Download className="h-4 w-4" />
                 Export All
               </Button>
-              <Button className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Add Product
+              <Button asChild className="flex items-center gap-2">
+                <Link href="/products/add">
+                  <Plus className="h-4 w-4" />
+                  Add Product
+                </Link>
               </Button>
             </div>
           </div>
@@ -115,9 +118,11 @@ export default function ProductsPage() {
             <p className="text-muted-foreground mb-4">
               Start building your catalog by adding your first product
             </p>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Your First Product
+            <Button asChild>
+              <Link href="/products/add" className="flex items-center">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Your First Product
+              </Link>
             </Button>
           </Card>
         </div>
