@@ -7,14 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Sidebar } from "@/components/layout/sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { ProductsTable } from "@/components/products/products-table";
-import { Plus, Import, Download, Package, Search, X, ChevronDown } from "lucide-react";
+import { Plus, Import, Download, Search, X } from "lucide-react";
 import Link from "next/link";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 export default function ProductsPage() {
   // Sample stats - replace with real data from your API
@@ -65,30 +59,15 @@ export default function ProductsPage() {
                   )}
                 </div>
                 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-9">
-                      <span className="hidden sm:inline">Products</span>
-                      <ChevronDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem asChild>
-                      <Link href="/products/add" className="cursor-pointer">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Product
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Import className="mr-2 h-4 w-4" />
-                      Import
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Download className="mr-2 h-4 w-4" />
-                      Export
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button variant="outline" size="sm" className="h-9">
+                  <Import className="mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Import</span>
+                </Button>
+                
+                <Button variant="outline" size="sm" className="h-9">
+                  <Download className="mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Export</span>
+                </Button>
                 
                 <Button asChild size="sm" className="h-9">
                   <Link href="/products/add">
