@@ -95,13 +95,14 @@ export function Sidebar() {
     if (user) {
       fetchProfileName();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchProfileName = async () => {
     try {
       if (!user) return;
       
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('profiles')
         .select('full_name')
         .eq('id', user.id)
@@ -110,8 +111,8 @@ export function Sidebar() {
       if (data?.full_name) {
         setProfileName(data.full_name);
       }
-    } catch (error) {
-      console.error('Error fetching profile name:', error);
+    } catch (err) {
+      console.error('Error fetching profile name:', err);
     }
   };
 

@@ -11,7 +11,7 @@ interface ActivityLog {
   action: string;
   entity_type: string | null;
   entity_id: string | null;
-  metadata: any;
+  metadata: Record<string, unknown> | null;
   ip_address: string | null;
   user_agent: string | null;
   created_at: string;

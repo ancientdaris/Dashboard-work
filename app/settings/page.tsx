@@ -5,11 +5,10 @@ import { useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { ActivityLog } from './activity-log'
 import { Sidebar } from "@/components/layout/sidebar";
-import { Smartphone, Monitor, Tablet, MoreHorizontal } from "lucide-react";
+import { Smartphone, Monitor, Tablet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -47,7 +46,7 @@ type Profile = {
   gst_number: string | null;
   pan_number: string | null;
   business_name: string | null;
-  verification_documents: any | null;
+  verification_documents: Record<string, unknown> | null;
   verified_at: string | null;
   verified_by: string | null;
 };
@@ -68,6 +67,7 @@ export default function SettingsPage() {
   useEffect(() => {
     fetchSessions();
     fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
