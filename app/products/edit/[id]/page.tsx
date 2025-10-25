@@ -82,17 +82,18 @@ export default function EditProductPage() {
 
   useEffect(() => {
     fetchProduct();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId]);
 
   const fetchProduct = async () => {
     try {
       setFetching(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase
         .from('products')
         .select('*')
-        .eq('id', productId as never)
-        .single() as any) as { data: ProductFormData | null; error: Error | null };
+        .eq('id', productId)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .single() as any);
 
       if (error) throw error;
 
@@ -133,20 +134,6 @@ export default function EditProductPage() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleDimensionsChange = (dimensions: string) => {
-    const parts = dimensions.split('×').map(p => parseFloat(p.trim()));
-    if (parts.length === 3 && parts.every(p => !isNaN(p))) {
-      setFormData(prev => ({
-        ...prev,
-        dimensions: {
-          length: parts[0],
-          width: parts[1],
-          height: parts[2],
-          unit: 'cm'
-        }
-      }));
-    }
-  };
 
   const validateForm = (): boolean => {
     const errors: string[] = [];
@@ -182,9 +169,9 @@ export default function EditProductPage() {
     setLoading(true);
     
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase
-        .from('products')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('products') as any)
         .update({
           name: formData.name,
           sku: formData.sku,
@@ -202,8 +189,8 @@ export default function EditProductPage() {
           is_active: formData.is_active,
           batch_tracking_enabled: formData.batch_tracking_enabled,
           expiry_date: formData.expiry_date || null,
-        } as any)
-        .eq('id', productId as never) as any);
+        })
+        .eq('id', productId);
 
       if (error) throw error;
 

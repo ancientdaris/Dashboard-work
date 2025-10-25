@@ -62,20 +62,20 @@ export default function DashboardPage() {
       setLoading(true);
       try {
         // Search products
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: products } = await (supabase
+        const productsQuery = await supabase
           .from('products')
           .select('id, name, sku, unit_price, category')
           .or(`name.ilike.%${searchQuery}%,sku.ilike.%${searchQuery}%`)
-          .limit(5) as any);
+          .limit(5);
+        const products = productsQuery.data;
 
         // Search orders
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: orders } = await (supabase
+        const ordersQuery = await supabase
           .from('orders')
           .select('id, order_number, total_amount, status')
           .ilike('order_number', `%${searchQuery}%`)
-          .limit(3) as any);
+          .limit(3);
+        const orders = ordersQuery.data;
 
         const results: SearchResult[] = [];
 

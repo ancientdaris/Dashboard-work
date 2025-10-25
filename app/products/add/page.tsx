@@ -132,9 +132,9 @@ export default function NewProductPage() {
     setLoading(true);
     
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase
-        .from('products')
+      const { error } = await (supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('products') as any)
         .insert({
           name: formData.name,
           sku: formData.sku,
@@ -152,9 +152,9 @@ export default function NewProductPage() {
           is_active: formData.is_active,
           batch_tracking_enabled: formData.batch_tracking_enabled,
           expiry_date: formData.expiry_date || null,
-        } as any)
+        })
         .select()
-        .single() as any);
+        .single();
 
       if (error) throw error;
 
