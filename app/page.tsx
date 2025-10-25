@@ -11,7 +11,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-white text-slate-900">
       {/* Navigation */}
       <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="max-w-full mx-auto px-10 h-14 flex items-center justify-between">
           <Link href="/" className="font-bold text-base tracking-tight">
             OSAS
           </Link>
@@ -27,12 +27,12 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-[80vh] flex items-center px-4 py-12 overflow-hidden bg-slate-50">
+      <section className="relative min-h-screen flex items-center overflow-hidden bg-slate-50">
 
-        <div className="max-w-7xl w-full mx-auto relative z-10">
+        <div className=" w-full mx-auto relative z-10">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Left Column - Content */}
-            <div className="space-y-6 animate-fade-in-up">
+            <div className="space-y-3 animate-fade-in-up pl-10">
               {/* Badge */}
               <Badge variant="secondary" className="inline-flex items-center gap-1.5 px-3 py-1 text-xs bg-slate-100 border-slate-200 text-slate-700">
                 <div className="w-1.5 h-1.5 rounded-full bg-slate-900"></div>
@@ -40,12 +40,12 @@ export default function LandingPage() {
               </Badge>
 
               {/* Main Heading */}
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] text-slate-900">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-bold tracking-tight leading-[1.1] text-slate-900" style={{ fontFamily: 'var(--font-dm-sans), var(--font-geist-sans), sans-serif' }}>
                 India&apos;s leading B2B marketplace
               </h1>
 
               {/* Description */}
-              <p className="text-base md:text-lg text-slate-600 font-normal leading-relaxed max-w-xl">
+              <p className="text-base md:text-md text-slate-600 font-normal leading-relaxed max-w-xl">
                 Connect wholesalers and retailers across India. Streamline your supply chain with GST-compliant invoicing, real-time inventory, and seamless payments.
               </p>
 
@@ -86,41 +86,19 @@ export default function LandingPage() {
             </div>
 
             {/* Right Column - Image */}
-            <div className="relative">
-              <Card className="overflow-hidden border-slate-200">
-                <CardContent className="p-0">
-                  {/* Placeholder for dashboard/product image */}
-                  <div className="aspect-[4/3] bg-slate-100 flex items-center justify-center p-4">
-                    <Card className="w-full h-full">
-                      <CardContent className="p-4 flex flex-col gap-3">
-                        {/* Mock Dashboard UI */}
-                        <div className="flex items-center justify-between">
-                          <div className="h-6 w-24 bg-slate-300 rounded"></div>
-                          <div className="h-6 w-6 bg-slate-300 rounded"></div>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 pt-2">
-                          <Card className="bg-slate-200 border-0 h-16"></Card>
-                          <Card className="bg-slate-200 border-0 h-16"></Card>
-                          <Card className="bg-slate-200 border-0 h-16"></Card>
-                        </div>
-                        <div className="space-y-2 pt-2">
-                          <div className="h-3 bg-slate-200 rounded w-full"></div>
-                          <div className="h-3 bg-slate-200 rounded w-5/6"></div>
-                          <div className="h-3 bg-slate-200 rounded w-4/6"></div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 pt-2">
-                          <Card className="bg-slate-200 border-0 h-20"></Card>
-                          <Card className="bg-slate-200 border-0 h-20"></Card>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="relative h-full min-h-[100vh] w-full">
+              <div className="absolute inset-0 w-full h-full">
+                <img
+                  src="/images/image1.png"
+                  alt="Dashboard preview"
+                  className="w-full h-full object-cover object-left"
+                />
+              </div>
             </div>
           </div>
         </div>
       </section>
+
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white">
