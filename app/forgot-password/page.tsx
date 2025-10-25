@@ -34,18 +34,6 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* Header */}
-      <div className="border-b border-slate-200 bg-white">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-slate-900">
-              <Mail className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-xl font-bold text-slate-900">OSAS</span>
-          </Link>
-        </div>
-      </div>
-
       {/* Main Content */}
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md space-y-8">

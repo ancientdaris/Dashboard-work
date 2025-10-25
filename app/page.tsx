@@ -94,11 +94,11 @@ export default function LandingPage() {
                   className="w-full h-full object-cover"
                 />
                 {/* Floating Image */}
-                <div className="absolute inset-0 m-auto w-3/4 h-3/4 rounded-lg overflow-hidden shadow-2xl">
+                <div className="absolute inset-0 m-auto w-3/4 h-3/4 rounded-md overflow-hidden shadow-2xl">
                   <img
                     src="/images/localhost_3000_.png"
                     alt="Dashboard preview floating"
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-cover "
                   />
                 </div>
               </div>
