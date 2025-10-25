@@ -143,7 +143,6 @@ export default function NewProductPage() {
                   </div>
                 </div>
 
-                <Separator />
 
                 <div>
                   <h2 className="text-lg font-semibold mb-4">Additional Details</h2>
@@ -232,6 +231,25 @@ export default function NewProductPage() {
                           <span className="absolute right-3 top-2.5 text-muted-foreground">.00</span>
                         </div>
                       </div>
+                    </div>
+                  </div>
+                </div>
+
+
+                <div>
+                  <h2 className="text-lg font-semibold mb-4">Inventory</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Stock Quantity <span className="text-red-500">*</span></Label>
+                      <Input type="number" defaultValue="0" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Reorder Level</Label>
+                      <Input type="number" defaultValue="5" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Barcode</Label>
+                      <Input placeholder="Scan or enter barcode" />
                     </div>
                   </div>
                 </div>
