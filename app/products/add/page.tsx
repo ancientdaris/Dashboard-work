@@ -147,7 +147,7 @@ export default function NewProductPage() {
 
                 <div>
                   <h2 className="text-lg font-semibold mb-4">Additional Details</h2>
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label>Minimum Order Quantity</Label>
                       <Input type="number" defaultValue="1" />
