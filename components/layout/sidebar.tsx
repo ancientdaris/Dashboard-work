@@ -20,6 +20,7 @@ import {
   Package, 
   ShoppingCart, 
   ChevronLeft,
+  ChevronRight,
   Box,
   Truck,
   Store,
@@ -203,33 +204,61 @@ export function Sidebar() {
             {/* User Profile */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <div className="flex items-center gap-3 rounded-lg p-3 hover:bg-gray-100 transition-colors cursor-pointer">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src="" alt="User" />
-                    <AvatarFallback>{getUserInitials()}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 overflow-hidden">
-                    <h3 className="truncate font-medium text-sm">{getUserName()}</h3>
-                    <p className="truncate text-xs text-gray-500">{getUserEmail()}</p>
+                <button className="w-full group">
+                  <div className="flex items-center gap-3 rounded-xl p-3 bg-gradient-to-br from-gray-50 to-white border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer">
+                    <div className="relative">
+                      <Avatar className="h-11 w-11 ring-2 ring-white shadow-sm">
+                        <AvatarImage src="" alt="User" />
+                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
+                          {getUserInitials()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 bg-green-500 border-2 border-white rounded-full"></div>
+                    </div>
+                    <div className="flex-1 overflow-hidden text-left">
+                      <h3 className="truncate font-semibold text-sm text-gray-900 group-hover:text-blue-600 transition-colors">
+                        {getUserName()}
+                      </h3>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
                   </div>
-                </div>
+                </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-64 p-2">
+                <div className="px-3 py-2 mb-2">
+                  <p className="text-sm font-semibold text-gray-900">{getUserName()}</p>
+                </div>
+                <Separator className="mb-2" />
                 <Link href="/settings?tab=profile">
-                  <DropdownMenuItem className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
+                  <DropdownMenuItem className="cursor-pointer rounded-lg hover:bg-blue-50 transition-colors py-2.5">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <User className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Profile Settings</p>
+                        <p className="text-xs text-gray-500">Manage your account</p>
+                      </div>
+                    </div>
                   </DropdownMenuItem>
                 </Link>
+                <Separator className="my-2" />
                 <DropdownMenuItem 
-                  className="text-red-600 cursor-pointer" 
+                  className="cursor-pointer rounded-lg hover:bg-red-50 transition-colors py-2.5 focus:bg-red-50" 
                   onSelect={async (e) => {
                     e.preventDefault();
                     await handleLogout();
                   }}
                 >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Log out
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-red-100 flex items-center justify-center">
+                      <LogOut className="h-4 w-4 text-red-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-red-600">Log out</p>
+                      <p className="text-xs text-gray-500">Sign out of your account</p>
+                    </div>
+                  </div>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
