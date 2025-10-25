@@ -210,7 +210,7 @@ export function ProductsTable({ searchTerm }: ProductsTableProps) {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDelete(product.id)}
+                        onClick={() => handleDeleteProduct(product.id)}
                         className="text-red-600 hover:text-red-900"
                       >
                         <Trash2 className="h-4 w-4" />
