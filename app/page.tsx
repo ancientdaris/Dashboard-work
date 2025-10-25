@@ -86,7 +86,7 @@ export default function LandingPage() {
             </div>
 
             {/* Right Column - Image with Floating Effect */}
-            <div className="relative w-full h-full">
+            <div className="relative w-full h-full hidden lg:block">
               {/* Background Image */}
               <div className="relative w-full h-full overflow-hidden shadow-2xl">
                 <Image

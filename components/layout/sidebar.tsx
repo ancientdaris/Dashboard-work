@@ -205,35 +205,35 @@ export function Sidebar() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="w-full group">
-                  <div className="flex items-center gap-3 rounded-xl p-3 bg-gradient-to-br from-gray-50 to-white border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer">
+                  <div className="flex items-center gap-3 rounded-md p-1.5 bg-gradient-to-br from-gray-50 to-white border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer">
                     <div className="relative">
-                      <Avatar className="h-11 w-11 ring-2 ring-white shadow-sm">
+                      <Avatar className="h-7 w-7 ring-2 ring-white shadow-sm">
                         <AvatarImage src="" alt="User" />
-                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
+                        <AvatarFallback className="bg-gradient-to-br from-black to-gray-100 text-white font-semibold text-xs">
                           {getUserInitials()}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 bg-green-500 border-2 border-white rounded-full"></div>
+                      <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-green-500 border-2 border-white rounded-full"></div>
                     </div>
                     <div className="flex-1 overflow-hidden text-left">
-                      <h3 className="truncate font-semibold text-sm text-gray-900 group-hover:text-blue-600 transition-colors">
+                      <h3 className="truncate font-semibold text-sm text-gray-900 group-hover:text-black-600 transition-colors">
                         {getUserName()}
                       </h3>
+                      <p className="truncate text-[10px] text-gray-500 mt-0.5">
+                        {getUserEmail()}
+                      </p>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+                    <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-black-600 group-hover:translate-x-0.5 transition-all" />
                   </div>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 p-2">
-                <div className="px-3 py-2 mb-2">
-                  <p className="text-sm font-semibold text-gray-900">{getUserName()}</p>
-                </div>
-                <Separator className="mb-2" />
+              <DropdownMenuContent align="end" className="w-65 p-2">
+              
                 <Link href="/settings?tab=profile">
-                  <DropdownMenuItem className="cursor-pointer rounded-lg hover:bg-blue-50 transition-colors py-2.5">
+                  <DropdownMenuItem className="cursor-pointer rounded-lg hover:bg-black-50 transition-colors py-2.5">
                     <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                        <User className="h-4 w-4 text-blue-600" />
+                      <div className="h-8 w-8 rounded-lg bg-black-100 flex items-center justify-center">
+                        <User className="h-4 w-4 text-black-600" />
                       </div>
                       <div>
                         <p className="text-sm font-medium">Profile Settings</p>
