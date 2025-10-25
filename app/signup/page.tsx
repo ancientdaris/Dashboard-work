@@ -101,14 +101,14 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen bg-white text-slate-900 flex flex-col">
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12">
+      <div className="flex-1 flex items-center justify-center px-6 py-6">
         <div className="w-full max-w-md space-y-8">
           {/* Header */}
           <div className="space-y-3 text-center">
             <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-              Create your OSAS account
+              Create your account
             </h1>
-            <p className="text-slate-600 font-normal">
+            <p className="text-slate-600 text-lg font-normal">
               Join thousands of businesses on India&apos;s leading B2B platform
             </p>
           </div>
@@ -355,12 +355,7 @@ export default function SignUpPage() {
             </form>
           )}
 
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200"></div>
-            </div>
-          </div>
+      
 
           {/* Sign In Link */}
           <div className="text-center">
