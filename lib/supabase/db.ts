@@ -73,9 +73,17 @@ export async function fetchTableData<T extends TableName>(
       }
     }
 
-    const { data, error } = await query;
+    // Execute query with proper type assertion
+    const { data, error } = await query as unknown as {
+      data: TableRow<T>[] | null;
+      error: Error | null;
+    };
     
     if (error) throw error;
+    if (!data) {
+      return { data: null, error: new Error('No data returned') };
+    }
+    
     return { data, error: null };
   } catch (error) {
     console.error(`Error fetching from ${table}:`, error);
