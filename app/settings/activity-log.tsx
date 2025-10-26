@@ -85,53 +85,6 @@ export function ActivityLog() {
     fetchActivityLogs();
   }, [fetchActivityLogs]);
 
-  useEffect(() => {
-    const fetchActivityLogs = async (refresh = false) => {
-      try {
-        setLoading(true);
-        if (refresh) {
-          setPage(1);
-          setLogs([]);
-        }
-        
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError || !session) {
-          setError('Please sign in to view activity logs');
-          setLoading(false);
-          return;
-        }
-
-        const from = (page - 1) * pageSize;
-        const to = from + pageSize - 1;
-        
-        const { data, count, error: fetchError } = await supabase
-          .from('activity_logs')
-          .select('*, profiles (full_name, email)', { count: 'exact' })
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false })
-          .range(from, to);
-
-        if (fetchError) throw fetchError;
-        
-        if (refresh) {
-          setLogs(data || []);
-        } else {
-          setLogs(prev => [...prev, ...(data || [])]);
-        }
-        
-        setHasMore((count || 0) > page * pageSize);
-      } catch (err) {
-        console.error('Error fetching activity logs:', err);
-        setError('Failed to load activity logs');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchActivityLogs();
-  }, [page, pageSize]);
-
   const getActionIcon = (action: string) => {
     switch (action.toLowerCase()) {
       case 'login':
@@ -229,18 +182,6 @@ export function ActivityLog() {
           Refresh
         </Button>
       </div>
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Recent Activity</h3>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={refreshLogs}
-          disabled={loading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
       <div className="space-y-2">
         {logs.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
@@ -262,73 +203,60 @@ export function ActivityLog() {
                     <div className="flex items-center space-x-2">
                       <span className="font-medium capitalize">
                         {log.action.replace(/_/g, ' ')}
-        logs.map((log) => (
-          <div 
-            key={log.id} 
-            className="border rounded-lg p-4 hover:bg-accent/50 transition-colors"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-start space-x-3">
-                <div className="p-2 rounded-full bg-accent">
-                  {getActionIcon(log.action)}
-                </div>
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <span className="font-medium capitalize">
-                      {log.action.replace(/_/g, ' ')}
-                    </span>
-                    {log.entity_type && (
-                      <span className="text-sm text-muted-foreground">
-                        {log.entity_type}
-                        {log.entity_id && `#${log.entity_id.substring(0, 4)}`}
                       </span>
-                    )}
-                  </div>
-                  
-                  {log.profiles && (
-                    <div className="text-sm text-muted-foreground">
-                      {log.profiles.full_name || log.profiles.email}
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center space-x-4 mt-1 text-xs text-muted-foreground">
-                    <div className="flex items-center space-x-1">
-                      <Clock className="h-3 w-3" />
-                      <span>{format(new Date(log.created_at), 'MMM d, yyyy h:mm a')}</span>
-                    </div>
-                    
-                    {log.ip_address && (
-                      <div className="flex items-center space-x-1">
-                        <Globe className="h-3 w-3" />
-                        <span>{log.ip_address}</span>
-                      </div>
-                    )}
-                    
-                    {log.user_agent && (
-                      <div className="flex items-center space-x-1">
-                        {getDeviceIcon(log.user_agent)}
-                        <span>
-                          {log.user_agent.includes('Mobile') ? 'Mobile' : 'Desktop'}
+                      {log.entity_type && (
+                        <span className="text-sm text-muted-foreground">
+                          {log.entity_type}
+                          {log.entity_id && `#${log.entity_id.substring(0, 4)}`}
                         </span>
+                      )}
+                    </div>
+                    
+                    {log.profiles && (
+                      <div className="text-sm text-muted-foreground">
+                        {log.profiles.full_name || log.profiles.email}
                       </div>
                     )}
+                    
+                    <div className="flex items-center space-x-4 mt-1 text-xs text-muted-foreground">
+                      <div className="flex items-center space-x-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{format(new Date(log.created_at), 'MMM d, yyyy h:mm a')}</span>
+                      </div>
+                      
+                      {log.ip_address && (
+                        <div className="flex items-center space-x-1">
+                          <Globe className="h-3 w-3" />
+                          <span>{log.ip_address}</span>
+                        </div>
+                      )}
+                      
+                      {log.user_agent && (
+                        <div className="flex items-center space-x-1">
+                          {getDeviceIcon(log.user_agent)}
+                          <span>
+                            {log.user_agent.includes('Mobile') ? 'Mobile' : 'Desktop'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
+                
+                {log.metadata && Object.keys(log.metadata).length > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    <details>
+                      <summary className="cursor-pointer hover:underline">Details</summary>
+                      <pre className="mt-1 p-2 bg-muted rounded text-xs overflow-auto max-w-xs">
+                        {JSON.stringify(log.metadata, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
+                )}
               </div>
-              
-              {log.metadata && Object.keys(log.metadata).length > 0 && (
-                <div className="text-xs text-muted-foreground">
-                  <details>
-                    <summary className="cursor-pointer hover:underline">Details</summary>
-                    <pre className="mt-1 p-2 bg-muted rounded text-xs overflow-auto max-w-xs">
-                      {JSON.stringify(log.metadata, null, 2)}
-                    </pre>
-                  </details>
-                </div>
-              )}
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
       
       <div className="flex items-center justify-between mt-4">

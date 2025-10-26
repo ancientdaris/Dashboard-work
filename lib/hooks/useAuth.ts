@@ -65,6 +65,16 @@ export const useAuth = () => {
         return { error };
       }
 
+      // Log the signup activity
+      const { logActivity } = await import('@/lib/activity-logger');
+      await logActivity({
+        action: 'signup',
+        metadata: {
+          email: data.email.trim().toLowerCase(),
+          business_type: data.businessType,
+        },
+      });
+
       return { error: null };
     } catch (error) {
       return { error: error as AuthError };
@@ -83,6 +93,15 @@ export const useAuth = () => {
         return { error };
       }
 
+      // Log the login activity
+      const { logActivity } = await import('@/lib/activity-logger');
+      await logActivity({
+        action: 'login',
+        metadata: {
+          email: data.email.trim().toLowerCase(),
+        },
+      });
+
       // Redirect to dashboard after successful sign in
       router.push('/dashboard');
       return { error: null };
@@ -93,6 +112,12 @@ export const useAuth = () => {
 
   const signOut = async (): Promise<{ error: AuthError | null }> => {
     try {
+      // Log the logout activity before signing out
+      const { logActivity } = await import('@/lib/activity-logger');
+      await logActivity({
+        action: 'logout',
+      });
+
       const { error } = await supabase.auth.signOut();
       
       if (error) {

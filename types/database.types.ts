@@ -250,5 +250,7 @@ export interface ActivityLog extends BaseEntity {
   metadata: Record<string, unknown> | null;
   ip_address: string | null;
   user_agent: string | null;
+  changed_from: Record<string, unknown> | null;
+  changed_to: Record<string, unknown> | null;
   user?: Profile;
 }
