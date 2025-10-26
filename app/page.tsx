@@ -98,7 +98,7 @@ export default function LandingPage() {
                   </div>
                   <span className="text-xs text-slate-700 font-semibold whitespace-nowrap">GST Compliant</span>
                 </Card>
-                <Card className="inline-flex items-center gap-2 px-4 py-2 border-slate-200 w-fit">
+                <Card className="hidden md:inline-flex items-center gap-2 px-4 py-2 border-slate-200 w-fit">
                   <div className="w-6 h-6 rounded bg-slate-900 flex items-center justify-center flex-shrink-0">
                     <Zap className="w-3 h-3 text-white" />
                   </div>
