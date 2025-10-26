@@ -184,6 +184,80 @@ export default function PaymentsPage() {
     });
   };
 
+  const handleExport = () => {
+    if (filteredPayments.length === 0) {
+      toast({
+        title: "No data to export",
+        description: "There are no payments to export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create text content
+    let txtContent = "PAYMENTS REPORT\n";
+    txtContent += "=".repeat(80) + "\n\n";
+    txtContent += `Generated: ${new Date().toLocaleString()}\n`;
+    txtContent += `Total Payments: ${filteredPayments.length}\n\n`;
+    txtContent += "=".repeat(80) + "\n\n";
+
+    filteredPayments.forEach((payment, index) => {
+      txtContent += `Payment #${index + 1}\n`;
+      txtContent += "-".repeat(80) + "\n";
+      txtContent += `Payment Number: ${payment.payment_number}\n`;
+      txtContent += `Retailer: ${payment.retailer?.name || "N/A"}\n`;
+      txtContent += `Amount: ₹${payment.amount.toLocaleString()}\n`;
+      txtContent += `Payment Method: ${payment.payment_method || "N/A"}\n`;
+      txtContent += `Status: ${payment.status.toUpperCase()}\n`;
+      txtContent += `Payment Date: ${new Date(payment.payment_date).toLocaleString()}\n`;
+      txtContent += `Reference Number: ${payment.reference_number || "N/A"}\n`;
+      if (payment.notes) {
+        txtContent += `Notes: ${payment.notes}\n`;
+      }
+      if (payment.gateway_transaction_id) {
+        txtContent += `Gateway Transaction ID: ${payment.gateway_transaction_id}\n`;
+      }
+      if (payment.gateway_name) {
+        txtContent += `Gateway: ${payment.gateway_name}\n`;
+      }
+      txtContent += `Same Day Payment: ${payment.is_same_day ? "Yes" : "No"}\n`;
+      txtContent += "\n";
+    });
+
+    // Calculate totals
+    const totalAmount = filteredPayments.reduce((sum, p) => sum + p.amount, 0);
+    const completedAmount = filteredPayments
+      .filter(p => p.status === "completed")
+      .reduce((sum, p) => sum + p.amount, 0);
+    const pendingAmount = filteredPayments
+      .filter(p => p.status === "pending")
+      .reduce((sum, p) => sum + p.amount, 0);
+
+    txtContent += "=".repeat(80) + "\n";
+    txtContent += "SUMMARY\n";
+    txtContent += "=".repeat(80) + "\n";
+    txtContent += `Total Amount: ₹${totalAmount.toLocaleString()}\n`;
+    txtContent += `Completed: ₹${completedAmount.toLocaleString()}\n`;
+    txtContent += `Pending: ₹${pendingAmount.toLocaleString()}\n`;
+    txtContent += `Total Payments: ${filteredPayments.length}\n`;
+
+    // Create and download file
+    const blob = new Blob([txtContent], { type: "text/plain" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `payments_export_${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Export successful",
+      description: `Exported ${filteredPayments.length} payments to TXT file`,
+    });
+  };
+
   const getStatusBadge = (status: PaymentStatus) => {
     const variants: Record<PaymentStatus, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
       completed: { variant: "default", label: "Completed" },
@@ -223,7 +297,13 @@ export default function PaymentsPage() {
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <Button variant="outline" className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  className="flex items-center gap-2"
+                  onClick={handleExport}
+                  disabled={filteredPayments.length === 0}
+                  title={filteredPayments.length === 0 ? "No payments to export" : "Export payments to TXT file"}
+                >
                   <Download className="h-4 w-4" />
                   <span>Export</span>
                 </Button>
