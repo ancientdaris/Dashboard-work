@@ -36,7 +36,28 @@ export default function DashboardPage() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [userFullName, setUserFullName] = useState<string>('');
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Fetch user profile
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile?.full_name) {
+          setUserFullName(profile.full_name);
+        }
+      }
+    };
+    
+    fetchUserProfile();
+  }, [supabase]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -145,7 +166,7 @@ export default function DashboardPage() {
             {/* Header */}
             <div className="mb-8 space-y-2">
               <h1 className="text-3xl font-semibold tracking-tight text-gray-900">
-                Welcome back to Phatkure Wholesale Distributors
+                Welcome back{userFullName && `, ${userFullName}`}
               </h1>
               <p className="text-muted-foreground">
                 Here&apos;s what&apos;s happening with your wholesale business today

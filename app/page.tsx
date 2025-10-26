@@ -5,9 +5,16 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, TrendingUp, Shield, Zap } from "lucide-react";
+import { ArrowRight, TrendingUp, Shield, Zap, LogOut } from "lucide-react";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 export default function LandingPage() {
+  const { user, loading, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-white text-slate-900">
       {/* Navigation */}
@@ -17,12 +24,27 @@ export default function LandingPage() {
             OSAS
           </Link>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild className="text-slate-600 hover:text-slate-900">
-              <Link href="/signin">Sign in</Link>
-            </Button>
-            <Button size="sm" asChild className="bg-slate-900 hover:bg-slate-800 text-white">
-              <Link href="/signup">Get started</Link>
-            </Button>
+            {!loading && (
+              user ? (
+                <Button 
+                  size="sm" 
+                  onClick={handleSignOut}
+                  className="bg-slate-900 hover:bg-slate-800 text-white flex items-center gap-2 cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </Button>
+              ) : (
+                <>
+                  <Button variant="ghost" size="sm" asChild className="text-slate-600 hover:text-slate-900">
+                    <Link href="/signin">Sign in</Link>
+                  </Button>
+                  <Button size="sm" asChild className="bg-slate-900 hover:bg-slate-800 text-white">
+                    <Link href="/signup">Get started</Link>
+                  </Button>
+                </>
+              )
+            )}
           </div>
         </div>
       </nav>
@@ -63,24 +85,24 @@ export default function LandingPage() {
               </div>
 
               {/* Feature Pills */}
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 pt-4">
-                <Card className="inline-flex items-center gap-1.5 px-3 py-1.5 border-slate-200">
-                  <div className="w-6 h-6 rounded bg-slate-900 flex items-center justify-center">
+              <div className="flex flex-wrap gap-3 pt-4">
+                <Card className="inline-flex items-center gap-2 px-4 py-2 border-slate-200 w-fit">
+                  <div className="w-6 h-6 rounded bg-slate-900 flex items-center justify-center flex-shrink-0">
                     <TrendingUp className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-xs text-slate-700 font-semibold">Real-time Inventory</span>
+                  <span className="text-xs text-slate-700 font-semibold whitespace-nowrap">Real-time Inventory</span>
                 </Card>
-                <Card className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 border-slate-200">
-                  <div className="w-6 h-6 rounded bg-slate-900 flex items-center justify-center">
+                <Card className="inline-flex items-center gap-2 px-4 py-2 border-slate-200 w-fit">
+                  <div className="w-6 h-6 rounded bg-slate-900 flex items-center justify-center flex-shrink-0">
                     <Shield className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-xs text-slate-700 font-semibold">GST Compliant</span>
+                  <span className="text-xs text-slate-700 font-semibold whitespace-nowrap">GST Compliant</span>
                 </Card>
-                <Card className="inline-flex items-center gap-1.5 px-3 py-1.5 border-slate-200">
-                  <div className="w-6 h-6 rounded bg-slate-900 flex items-center justify-center">
+                <Card className="inline-flex items-center gap-2 px-4 py-2 border-slate-200 w-fit">
+                  <div className="w-6 h-6 rounded bg-slate-900 flex items-center justify-center flex-shrink-0">
                     <Zap className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-xs text-slate-700 font-semibold">Seamless Payments</span>
+                  <span className="text-xs text-slate-700 font-semibold whitespace-nowrap">Seamless Payments</span>
                 </Card>
               </div>
             </div>
