@@ -1,14 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase';
 const supabase = createClient();
-import { format } from 'date-fns';
-import { Activity, Clock, User, HardDrive, Globe, Smartphone } from 'lucide-react';
+import { format, formatDistanceToNow } from 'date-fns';
+import { Activity, Clock, User, HardDrive, Globe, Smartphone, RefreshCw } from 'lucide-react';
 import { Skeleton } from '../../components/ui/skeleton';
+import { Button } from '../../components/ui/button';
+import { toast } from '../../components/ui/use-toast';
 
 interface ActivityLog {
   id: string;
+  user_id: string;
   action: string;
   entity_type: string | null;
   entity_id: string | null;
@@ -17,8 +20,8 @@ interface ActivityLog {
   user_agent: string | null;
   created_at: string;
   profiles?: {
-    full_name?: string;
-    email?: string;
+    full_name?: string | null;
+    email?: string | null;
   } | null;
 }
 
@@ -27,12 +30,70 @@ export function ActivityLog() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const pageSize = 10;
+  
+  const fetchActivityLogs = useCallback(async (refresh = false) => {
+    try {
+      setLoading(true);
+      const currentPage = refresh ? 1 : page;
+      
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        setError('Please sign in to view activity logs');
+        setLoading(false);
+        return;
+      }
+
+      const from = (currentPage - 1) * pageSize;
+      const to = from + pageSize - 1;
+      
+      const { data, count, error: fetchError } = await supabase
+        .from('activity_logs')
+        .select('*, profiles (full_name, email)', { count: 'exact' })
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (fetchError) throw fetchError;
+      
+      if (refresh || currentPage === 1) {
+        setLogs(data || []);
+      } else {
+        setLogs(prev => [...prev, ...(data || [])]);
+      }
+      
+      setHasMore((count || 0) > currentPage * pageSize);
+      if (refresh) {
+        setPage(1);
+      }
+    } catch (err) {
+      console.error('Error fetching activity logs:', err);
+      setError('Failed to load activity logs');
+      toast({
+        title: 'Error',
+        description: 'Failed to load activity logs',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize]);
+  
+  useEffect(() => {
+    fetchActivityLogs();
+  }, [fetchActivityLogs]);
 
   useEffect(() => {
-    const fetchActivityLogs = async () => {
+    const fetchActivityLogs = async (refresh = false) => {
       try {
         setLoading(true);
+        if (refresh) {
+          setPage(1);
+          setLogs([]);
+        }
+        
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError || !session) {
@@ -41,18 +102,25 @@ export function ActivityLog() {
           return;
         }
 
-        const { data, error: fetchError } = await supabase
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+        
+        const { data, count, error: fetchError } = await supabase
           .from('activity_logs')
-          .select(`
-            *,
-            profiles (full_name, email)
-          `)
+          .select('*, profiles (full_name, email)', { count: 'exact' })
+          .eq('user_id', session.user.id)
           .order('created_at', { ascending: false })
-          .range((page - 1) * pageSize, page * pageSize - 1);
+          .range(from, to);
 
         if (fetchError) throw fetchError;
         
-        setLogs(data || []);
+        if (refresh) {
+          setLogs(data || []);
+        } else {
+          setLogs(prev => [...prev, ...(data || [])]);
+        }
+        
+        setHasMore((count || 0) > page * pageSize);
       } catch (err) {
         console.error('Error fetching activity logs:', err);
         setError('Failed to load activity logs');
@@ -62,7 +130,7 @@ export function ActivityLog() {
     };
 
     fetchActivityLogs();
-  }, [page]);
+  }, [page, pageSize]);
 
   const getActionIcon = (action: string) => {
     switch (action.toLowerCase()) {
@@ -88,6 +156,16 @@ export function ActivityLog() {
     return <HardDrive className="h-4 w-4 text-gray-400" />;
   };
 
+  const loadMore = () => {
+    if (!loading && hasMore) {
+      setPage(prev => prev + 1);
+    }
+  };
+
+  const refreshLogs = () => {
+    fetchActivityLogs(true);
+  };
+
   if (loading && logs.length === 0) {
     return (
       <div className="space-y-4">
@@ -100,26 +178,91 @@ export function ActivityLog() {
 
   if (error) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center text-red-600 dark:border-red-900 dark:bg-red-900/20">
-        <p>{error}</p>
-        <button
-          onClick={() => window.location.href = '/signin'}
-          className="mt-4 inline-flex items-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-        >
-          Sign In
-        </button>
+      <div className="space-y-4">
+        <div className="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
+          <p className="font-medium">Error loading activity logs</p>
+          <p className="text-sm">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-2 text-sm text-red-600 hover:underline"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
 
-  if (logs.length === 0) {
-    return <div className="text-muted-foreground text-center py-8">No activity logs found</div>;
-  }
+
+  const getActionText = (log: ActivityLog) => {
+    const userName = log.profiles?.full_name || log.profiles?.email?.split('@')[0] || 'User';
+    
+    switch (log.action) {
+      case 'login':
+        return `${userName} logged in`;
+      case 'logout':
+        return `${userName} logged out`;
+      case 'profile_update':
+        return `${userName} updated their profile`;
+      case 'password_change':
+        return `${userName} changed their password`;
+      case 'settings_update':
+        return `${userName} updated their settings`;
+      case 'session_revoked':
+        return `Session was revoked for ${userName}`;
+      default:
+        return `${userName} performed ${log.action} action`;
+    }
+  };
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Recent Activity</h3>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={refreshLogs}
+          disabled={loading}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Recent Activity</h3>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={refreshLogs}
+          disabled={loading}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
       <div className="space-y-2">
-        {logs.map((log) => (
+        {logs.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <p>No activity logs found</p>
+          <p className="text-sm">Your activities will appear here</p>
+        </div>
+        ) : (
+          logs.map((log: ActivityLog) => (
+            <div 
+              key={log.id} 
+              className="border rounded-lg p-4 hover:bg-accent/50 transition-colors"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-start space-x-3">
+                  <div className="p-2 rounded-full bg-accent">
+                    {getActionIcon(log.action)}
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium capitalize">
+                        {log.action.replace(/_/g, ' ')}
+        logs.map((log) => (
           <div 
             key={log.id} 
             className="border rounded-lg p-4 hover:bg-accent/50 transition-colors"

@@ -32,7 +32,8 @@ import {
   Settings,
   Warehouse,
   DollarSign,
-  Link2
+  Link2,
+  Users
 } from "lucide-react";
 
 const sidebarItems = [
@@ -97,6 +98,11 @@ const sidebarItems = [
     title: "Payments",
     href: "/payments",
     icon: CreditCard,
+  },
+  {
+    title: "Staff",
+    href: "/staff",
+    icon: Users,
   },
   {
     title: "Reports",
