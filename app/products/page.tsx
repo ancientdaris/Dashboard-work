@@ -73,7 +73,7 @@ export default function ProductsPage() {
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto bg-gray-50">
-          <div className="p-6">
+          <div className="p-4 md:p-6">
             {/* Header */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
               <div>

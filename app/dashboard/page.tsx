@@ -162,10 +162,10 @@ export default function DashboardPage() {
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto bg-gray-50">
-          <div className="container p-8 max-w-7xl">
+          <div className="container p-4 md:p-8 max-w-7xl">
             {/* Header */}
             <div className="mb-8 space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-gray-900">
+              <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
                 Welcome back{userFullName && `, ${userFullName}`}
               </h1>
               <p className="text-muted-foreground">
@@ -362,7 +362,7 @@ export default function DashboardPage() {
               <p className="text-sm text-muted-foreground">Common tasks and operations</p>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                 {[
                   { icon: Plus, label: "Add Product", href: "/products/add", description: "List new items" },
                   { icon: ShoppingCart, label: "View Orders", href: "/orders", description: "Manage transactions" },

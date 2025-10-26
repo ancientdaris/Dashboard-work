@@ -226,7 +226,7 @@ export default function EditProductPage() {
   return (
     <div className="flex h-screen">
       <Sidebar />
-      <div className="flex-1 p-6 overflow-auto bg-gray-50">
+      <div className="flex-1 p-4 md:p-6 overflow-auto bg-gray-50">
         <div className="mx-auto max-w-7xl">
           {/* Header */}
           <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0 mb-8">
