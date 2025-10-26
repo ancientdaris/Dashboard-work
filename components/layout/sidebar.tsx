@@ -30,7 +30,9 @@ import {
   User,
   LogOut,
   Settings,
-  Warehouse
+  Warehouse,
+  DollarSign,
+  Link2
 } from "lucide-react";
 
 const sidebarItems = [
@@ -68,6 +70,16 @@ const sidebarItems = [
     title: "Retailers",
     href: "/retailers",
     icon: Store,
+  },
+  {
+    title: "Pricing",
+    href: "/pricing",
+    icon: DollarSign,
+  },
+  {
+    title: "Wholesaler Links",
+    href: "/wholesaler-links",
+    icon: Link2,
   },
   {
     title: "Invoices",

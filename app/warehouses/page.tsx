@@ -84,9 +84,68 @@ export default function WarehousesPage() {
               </Button>
             </div>
 
+            {/* Stats */}
+            {!loading && warehouses.length > 0 && (
+              <div className="mb-8 grid gap-4 md:grid-cols-3">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">
+                          Total Warehouses
+                        </p>
+                        <p className="text-2xl font-bold mt-1">
+                          {warehouses.length}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-blue-100 p-3">
+                        <Warehouse className="h-6 w-6 text-blue-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">
+                          Active Warehouses
+                        </p>
+                        <p className="text-2xl font-bold mt-1">
+                          {warehouses.filter((w) => w.is_active).length}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-green-100 p-3">
+                        <Building2 className="h-6 w-6 text-green-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">
+                          Inactive Warehouses
+                        </p>
+                        <p className="text-2xl font-bold mt-1">
+                          {warehouses.filter((w) => !w.is_active).length}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-gray-100 p-3">
+                        <Building2 className="h-6 w-6 text-gray-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
             {/* Search */}
             <div className="mb-6">
-              <div className="relative max-w-md">
+              <div className="relative max-w-full">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search warehouses..."
@@ -179,65 +238,6 @@ export default function WarehousesPage() {
                     </CardContent>
                   </Card>
                 ))}
-              </div>
-            )}
-
-            {/* Stats */}
-            {!loading && warehouses.length > 0 && (
-              <div className="mt-8 grid gap-4 md:grid-cols-3">
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          Total Warehouses
-                        </p>
-                        <p className="text-2xl font-bold mt-1">
-                          {warehouses.length}
-                        </p>
-                      </div>
-                      <div className="rounded-lg bg-blue-100 p-3">
-                        <Warehouse className="h-6 w-6 text-blue-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          Active Warehouses
-                        </p>
-                        <p className="text-2xl font-bold mt-1">
-                          {warehouses.filter((w) => w.is_active).length}
-                        </p>
-                      </div>
-                      <div className="rounded-lg bg-green-100 p-3">
-                        <Building2 className="h-6 w-6 text-green-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          Inactive Warehouses
-                        </p>
-                        <p className="text-2xl font-bold mt-1">
-                          {warehouses.filter((w) => !w.is_active).length}
-                        </p>
-                      </div>
-                      <div className="rounded-lg bg-gray-100 p-3">
-                        <Building2 className="h-6 w-6 text-gray-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
             )}
           </div>
