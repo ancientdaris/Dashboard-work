@@ -45,6 +45,16 @@ const sidebarItems = [
     title: "Products",
     href: "/products",
     icon: Box,
+    subItems: [
+      {
+        title: "All Products",
+        href: "/products",
+      },
+      {
+        title: "Add Product",
+        href: "/products/add",
+      }
+    ]
   },
   {
     title: "Inventory",
@@ -55,6 +65,16 @@ const sidebarItems = [
     title: "Warehouses",
     href: "/warehouses",
     icon: Warehouse,
+    subItems: [
+      {
+        title: "Warehouse List",
+        href: "/warehouses",
+      },
+      {
+        title: "Wholesaler Links",
+        href: "/wholesaler-links",
+      }
+    ]
   },
   {
     title: "Orders",
@@ -75,11 +95,6 @@ const sidebarItems = [
     title: "Pricing",
     href: "/pricing",
     icon: DollarSign,
-  },
-  {
-    title: "Wholesaler Links",
-    href: "/wholesaler-links",
-    icon: Link2,
   },
   {
     title: "Invoices",
@@ -106,6 +121,7 @@ const sidebarItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const { user, signOut } = useAuth();
   const [profileName, setProfileName] = useState<string | null>(null);
   const supabase = createClient();
@@ -185,29 +201,93 @@ export function Sidebar() {
       <nav className="flex-1 space-y-1 p-2 overflow-hidden">
         {sidebarItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href || item.subItems?.some(subItem => pathname === subItem.href);
+          const hasSubItems = item.subItems && item.subItems.length > 0;
           
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-0 rounded-lg px-2.5 py-2.5 text-sm font-medium transition-all duration-200 ease-in-out",
-                isActive
-                  ? "bg-slate-900 text-white gap-3"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 gap-3 ",
-                isCollapsed && "justify-center gap-0"
-              )}
-              title={isCollapsed ? item.title : undefined}
+            <div 
+              key={item.href} 
+              className="relative group"
+              onMouseEnter={() => hasSubItems && !isCollapsed && setOpenDropdown(item.title)}
+              onMouseLeave={() => hasSubItems && !isCollapsed && setOpenDropdown(null)}
             >
-              <Icon className="h-4 w-4 flex-shrink-0 "  />
-              <span className={cn(
-                "whitespace-nowrap transition-all duration-300 ease-in-out gap-0 ",
-                isCollapsed ? "opacity-0 w-0 overflow-hidden  " : "opacity-100 w-auto"
-              )}>
-                {item.title}
-              </span>
-            </Link>
+              <div className="relative">
+                <Button
+                  asChild={!hasSubItems}
+                  variant={isActive ? "secondary" : "ghost"}
+                  className={cn(
+                    "w-full justify-start gap-2 text-sm font-medium transition-colors group-hover:bg-gray-9",
+                    isCollapsed ? "justify-center px-2" : "px-3",
+                    hasSubItems ? "pr-1" : "",
+                    isActive ? "bg-gray-900 text-white hover:bg-gray-800" : ""
+                  )}
+                  onClick={(e) => {
+                    if (hasSubItems) {
+                      e.preventDefault();
+                      setOpenDropdown(openDropdown === item.title ? null : item.title);
+                    }
+                  }}
+                >
+                  {!hasSubItems ? (
+                    <Link href={item.href} className="flex items-center w-full h-full">
+                      <Icon className="h-4 w-4" />
+                      {!isCollapsed && (
+                        <div className="flex items-center justify-between w-full">
+                          <span>{item.title}</span>
+                        </div>
+                      )}
+                    </Link>
+                  ) : (
+                    <>
+                      <Icon className="h-4 w-4" />
+                      {!isCollapsed && (
+                        <div className="flex items-center justify-between w-full">
+                          <span>{item.title}</span>
+                          <ChevronRight className={cn(
+                            "h-4 w-4 transition-transform duration-200",
+                            openDropdown === item.title ? "rotate-90" : ""
+                          )} />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </Button>
+                {hasSubItems && (
+                  <div 
+                    className={cn(
+                      "overflow-hidden transition-all duration-200 ease-in-out",
+                      openDropdown === item.title ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+                    )}
+                  >
+                    <div className="py-1 pl-2 space-y-1">
+                      {item.subItems?.map((subItem) => {
+                        const isSubItemActive = pathname === subItem.href;
+                        return (
+                          <Link 
+                            key={subItem.href} 
+                            href={subItem.href}
+                            className={cn(
+                              "block w-full px-3 py-2 text-sm rounded-md transition-colors",
+                              isSubItemActive 
+                                ? "bg-gray-900 text-white font-medium hover:bg-gray-800" 
+                                : "hover:bg-gray-100 active:bg-gray-200"
+                            )}
+                            onClick={(e) => {
+                              // Close the dropdown when a subitem is clicked on mobile
+                              if (window.innerWidth < 768) {
+                                setOpenDropdown(null);
+                              }
+                            }}
+                          >
+                            {subItem.title}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           );
         })}
       </nav>
