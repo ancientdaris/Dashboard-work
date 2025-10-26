@@ -514,8 +514,8 @@ export default function RetailersPage() {
       </div>
     </div>
 
-      {/* Retailer Form Sheet */}
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+    {/* Retailer Form Sheet */}
+    <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="sm:max-w-[540px] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>{editingRetailer ? "Edit Retailer" : "Add Retailer"}</SheetTitle>
