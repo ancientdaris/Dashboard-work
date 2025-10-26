@@ -7,22 +7,36 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { validateEmail } from "@/lib/validation";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [fieldError, setFieldError] = useState("");
   const { resetPassword } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess(false);
+    setFieldError("");
     setIsLoading(true);
 
+    // Validate and sanitize email
+    const validation = validateEmail(email);
+    
+    if (!validation.isValid) {
+      setFieldError(validation.error || 'Invalid email');
+      setError('Please enter a valid email address');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      await resetPassword(email);
+      // Use sanitized email
+      await resetPassword(validation.sanitized);
       setSuccess(true);
       setEmail("");
     } catch (err: unknown) {
@@ -85,10 +99,21 @@ export default function ForgotPasswordPage() {
                 type="email"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  // Clear field error when user starts typing
+                  if (fieldError) {
+                    setFieldError("");
+                  }
+                }}
                 required
-                className="h-11 border-2 border-slate-300 focus:border-slate-900 focus:ring-2 focus:ring-slate-900"
+                className={`h-11 border-2 border-slate-300 focus:border-slate-900 focus:ring-2 focus:ring-slate-900 ${
+                  fieldError ? 'border-red-500' : ''
+                }`}
               />
+              {fieldError && (
+                <p className="text-xs text-red-600">{fieldError}</p>
+              )}
             </div>
 
             {/* Submit Button */}

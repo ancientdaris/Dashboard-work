@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase';
 const supabase = createClient();
 import { User, AuthError } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
+import { sanitizeInput } from '@/lib/validation';
 
 export interface SignUpData {
   email: string;
@@ -43,17 +44,19 @@ export const useAuth = () => {
 
   const signUp = async (data: SignUpData): Promise<{ error: AuthError | null }> => {
     try {
+      // Sanitize all user metadata before sending to Supabase
+      // Email and password are already validated/sanitized in the form
       const { error } = await supabase.auth.signUp({
-        email: data.email,
+        email: data.email.trim().toLowerCase(),
         password: data.password,
         options: {
           data: {
-            full_name: data.fullName,
-            mobile_number: data.mobileNumber,
+            full_name: sanitizeInput(data.fullName),
+            mobile_number: sanitizeInput(data.mobileNumber),
             business_type: data.businessType,
-            business_name: data.businessName,
-            gst_number: data.gstNumber,
-            city: data.city,
+            business_name: data.businessName ? sanitizeInput(data.businessName) : undefined,
+            gst_number: data.gstNumber ? sanitizeInput(data.gstNumber) : undefined,
+            city: data.city ? sanitizeInput(data.city) : undefined,
           },
         },
       });
@@ -70,8 +73,9 @@ export const useAuth = () => {
 
   const signIn = async (data: SignInData): Promise<{ error: AuthError | null }> => {
     try {
+      // Email is already validated/sanitized in the form
       const { error } = await supabase.auth.signInWithPassword({
-        email: data.email,
+        email: data.email.trim().toLowerCase(),
         password: data.password,
       });
 
@@ -104,7 +108,8 @@ export const useAuth = () => {
 
   const resetPassword = async (email: string): Promise<{ error: AuthError | null }> => {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      // Sanitize email input
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 

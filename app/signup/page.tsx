@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useRouter } from "next/navigation";
+import { validateSignUpForm, sanitizeInput } from "@/lib/validation";
 
 type BusinessType = "retailer" | "wholesaler" | null;
 
@@ -26,11 +27,20 @@ export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const { signUp } = useAuth();
   const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    // Clear field error when user starts typing
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -40,49 +50,108 @@ export default function SignUpPage() {
   const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
+    setError(null);
+    setFieldErrors({});
+
+    // Validate step 1 fields
+    const step1Errors: Record<string, string> = {};
+
+    if (!businessType) {
+      step1Errors.businessType = 'Please select a business type';
+    }
+
+    if (!formData.fullName.trim()) {
+      step1Errors.fullName = 'Full name is required';
+    } else if (formData.fullName.trim().length < 2) {
+      step1Errors.fullName = 'Name must be at least 2 characters';
+    }
+
+    if (!formData.email.trim()) {
+      step1Errors.email = 'Email is required';
+    } else {
+      const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+      if (!emailRegex.test(formData.email.trim())) {
+        step1Errors.email = 'Invalid email format';
+      }
+    }
+
+    if (!formData.mobileNumber.trim()) {
+      step1Errors.mobileNumber = 'Mobile number is required';
+    } else {
+      const digitsOnly = formData.mobileNumber.replace(/\D/g, '');
+      if (digitsOnly.length !== 10 && !(digitsOnly.length === 12 && digitsOnly.startsWith('91'))) {
+        step1Errors.mobileNumber = 'Invalid mobile number (must be 10 digits)';
+      }
+    }
+
+    if (!formData.password) {
+      step1Errors.password = 'Password is required';
+    } else if (formData.password.length < 8) {
+      step1Errors.password = 'Password must be at least 8 characters';
+    } else {
+      const hasUpperCase = /[A-Z]/.test(formData.password);
+      const hasLowerCase = /[a-z]/.test(formData.password);
+      const hasNumber = /[0-9]/.test(formData.password);
+      if (!hasUpperCase || !hasLowerCase || !hasNumber) {
+        step1Errors.password = 'Password must contain uppercase, lowercase, and number';
+      }
+    }
+
+    if (!formData.confirmPassword) {
+      step1Errors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      step1Errors.confirmPassword = 'Passwords do not match';
+    }
+
+    if (Object.keys(step1Errors).length > 0) {
+      setFieldErrors(step1Errors);
+      setIsLoading(false);
+      return;
+    }
+
+    // Proceed to step 2
     setTimeout(() => {
       setIsLoading(false);
-      if (step === 1) {
-        setStep(2);
-      }
-    }, 500);
+      setStep(2);
+    }, 300);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    setFieldErrors({});
 
-    // Validate passwords match
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      setIsLoading(false);
-      return;
-    }
-
-    // Validate password length
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long");
-      setIsLoading(false);
-      return;
-    }
-
-    if (!businessType) {
-      setError("Please select a business type");
-      setIsLoading(false);
-      return;
-    }
-
-    const { error: signUpError } = await signUp({
-      email: formData.email,
-      password: formData.password,
+    // Comprehensive validation with sanitization
+    const validation = validateSignUpForm({
       fullName: formData.fullName,
+      email: formData.email,
       mobileNumber: formData.mobileNumber,
+      password: formData.password,
+      confirmPassword: formData.confirmPassword,
       businessType: businessType,
       businessName: formData.businessName,
       gstNumber: formData.gstNumber,
       city: formData.city,
+    });
+
+    if (!validation.isValid) {
+      setFieldErrors(validation.errors);
+      setError('Please fix the errors below');
+      setIsLoading(false);
+      return;
+    }
+
+    // Use sanitized data for signup
+    const { error: signUpError } = await signUp({
+      email: validation.sanitizedData.email,
+      password: formData.password, // Password is not sanitized as it's hashed
+      fullName: validation.sanitizedData.fullName,
+      mobileNumber: validation.sanitizedData.mobileNumber,
+      businessType: businessType as 'retailer' | 'wholesaler',
+      businessName: validation.sanitizedData.businessName,
+      gstNumber: validation.sanitizedData.gstNumber,
+      city: validation.sanitizedData.city,
     });
 
     if (signUpError) {
@@ -140,6 +209,9 @@ export default function SignUpPage() {
               {/* Business Type Selection */}
               <div className="space-y-3">
                 <Label className="text-sm font-semibold">I am a<span className="text-red-500">*</span></Label>
+                {fieldErrors.businessType && (
+                  <p className="text-xs text-red-600">{fieldErrors.businessType}</p>
+                )}
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -179,8 +251,13 @@ export default function SignUpPage() {
                   value={formData.fullName}
                   onChange={handleChange}
                   required
-                  className="h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
+                  className={`h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900 ${
+                    fieldErrors.fullName ? 'border-red-500' : ''
+                  }`}
                 />
+                {fieldErrors.fullName && (
+                  <p className="text-xs text-red-600">{fieldErrors.fullName}</p>
+                )}
               </div>
 
               {/* Email Field */}
@@ -196,8 +273,13 @@ export default function SignUpPage() {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
+                  className={`h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900 ${
+                    fieldErrors.email ? 'border-red-500' : ''
+                  }`}
                 />
+                {fieldErrors.email && (
+                  <p className="text-xs text-red-600">{fieldErrors.email}</p>
+                )}
               </div>
 
               {/* Mobile Number Field */}
@@ -213,8 +295,13 @@ export default function SignUpPage() {
                   value={formData.mobileNumber}
                   onChange={handleChange}
                   required
-                  className="h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
+                  className={`h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900 ${
+                    fieldErrors.mobileNumber ? 'border-red-500' : ''
+                  }`}
                 />
+                {fieldErrors.mobileNumber && (
+                  <p className="text-xs text-red-600">{fieldErrors.mobileNumber}</p>
+                )}
               </div>
 
               {/* Password Field */}
@@ -230,8 +317,14 @@ export default function SignUpPage() {
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  className="h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
+                  className={`h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900 ${
+                    fieldErrors.password ? 'border-red-500' : ''
+                  }`}
                 />
+                {fieldErrors.password && (
+                  <p className="text-xs text-red-600">{fieldErrors.password}</p>
+                )}
+                <p className="text-xs text-slate-500">Must be 8+ characters with uppercase, lowercase, and number</p>
               </div>
 
               {/* Confirm Password Field */}
@@ -247,8 +340,13 @@ export default function SignUpPage() {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   required
-                  className="h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
+                  className={`h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900 ${
+                    fieldErrors.confirmPassword ? 'border-red-500' : ''
+                  }`}
                 />
+                {fieldErrors.confirmPassword && (
+                  <p className="text-xs text-red-600">{fieldErrors.confirmPassword}</p>
+                )}
               </div>
 
               {/* Continue Button */}
@@ -297,8 +395,13 @@ export default function SignUpPage() {
                     value={formData.businessName}
                     onChange={handleChange}
                     required
-                    className="h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
+                    className={`h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900 ${
+                      fieldErrors.businessName ? 'border-red-500' : ''
+                    }`}
                   />
+                  {fieldErrors.businessName && (
+                    <p className="text-xs text-red-600">{fieldErrors.businessName}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -313,8 +416,14 @@ export default function SignUpPage() {
                     value={formData.gstNumber}
                     onChange={handleChange}
                     required
-                    className="h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
+                    maxLength={15}
+                    className={`h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900 ${
+                      fieldErrors.gstNumber ? 'border-red-500' : ''
+                    }`}
                   />
+                  {fieldErrors.gstNumber && (
+                    <p className="text-xs text-red-600">{fieldErrors.gstNumber}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -329,8 +438,13 @@ export default function SignUpPage() {
                     value={formData.city}
                     onChange={handleChange}
                     required
-                    className="h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900"
+                    className={`h-11 border-slate-300 focus:border-slate-900 focus:ring-slate-900 ${
+                      fieldErrors.city ? 'border-red-500' : ''
+                    }`}
                   />
+                  {fieldErrors.city && (
+                    <p className="text-xs text-red-600">{fieldErrors.city}</p>
+                  )}
                 </div>
               </div>
 

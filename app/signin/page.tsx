@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { validateSignInForm } from "@/lib/validation";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -15,6 +16,7 @@ export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const { signIn } = useAuth();
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -22,8 +24,23 @@ export default function SignInPage() {
     setIsLoading(true);
     setError(null);
     setSuccess(false);
+    setFieldErrors({});
 
-    const { error: signInError } = await signIn({ email, password });
+    // Validate and sanitize inputs
+    const validation = validateSignInForm({ email, password });
+
+    if (!validation.isValid) {
+      setFieldErrors(validation.errors);
+      setError('Please fix the errors below');
+      setIsLoading(false);
+      return;
+    }
+
+    // Use sanitized email
+    const { error: signInError } = await signIn({ 
+      email: validation.sanitizedData.email, 
+      password // Password is not sanitized as it's hashed
+    });
 
     if (signInError) {
       setError(signInError.message);
@@ -77,10 +94,25 @@ export default function SignInPage() {
                 type="email"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  // Clear field error when user starts typing
+                  if (fieldErrors.email) {
+                    setFieldErrors((prev) => {
+                      const newErrors = { ...prev };
+                      delete newErrors.email;
+                      return newErrors;
+                    });
+                  }
+                }}
                 required
-                className="h-11 border-2 border-slate-100 focus:border-slate-900 focus:ring-2 focus:ring-slate-900"
+                className={`h-11 border-2 border-slate-100 focus:border-slate-900 focus:ring-2 focus:ring-slate-900 ${
+                  fieldErrors.email ? 'border-red-500' : ''
+                }`}
               />
+              {fieldErrors.email && (
+                <p className="text-xs text-red-600">{fieldErrors.email}</p>
+              )}
             </div>
 
             {/* Password Field */}
@@ -93,10 +125,25 @@ export default function SignInPage() {
                 type="password"
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  // Clear field error when user starts typing
+                  if (fieldErrors.password) {
+                    setFieldErrors((prev) => {
+                      const newErrors = { ...prev };
+                      delete newErrors.password;
+                      return newErrors;
+                    });
+                  }
+                }}
                 required
-                className="h-11 border-2 border-slate-300 focus:border-slate-900 focus:ring-2 focus:ring-slate-900"
+                className={`h-11 border-2 border-slate-300 focus:border-slate-900 focus:ring-2 focus:ring-slate-900 ${
+                  fieldErrors.password ? 'border-red-500' : ''
+                }`}
               />
+              {fieldErrors.password && (
+                <p className="text-xs text-red-600">{fieldErrors.password}</p>
+              )}
             </div>
 
             {/* Remember Me & Forgot Password */}
