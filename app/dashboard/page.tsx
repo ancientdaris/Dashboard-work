@@ -48,7 +48,7 @@ export default function DashboardPage() {
           .from('profiles')
           .select('full_name')
           .eq('id', user.id)
-          .single();
+          .single<{ full_name: string | null }>();
         
         if (profile?.full_name) {
           setUserFullName(profile.full_name);
