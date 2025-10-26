@@ -29,7 +29,8 @@ import {
   BarChart2,
   User,
   LogOut,
-  Settings
+  Settings,
+  Warehouse
 } from "lucide-react";
 
 const sidebarItems = [
@@ -47,6 +48,11 @@ const sidebarItems = [
     title: "Inventory",
     href: "/inventory",
     icon: Package,
+  },
+  {
+    title: "Warehouses",
+    href: "/warehouses",
+    icon: Warehouse,
   },
   {
     title: "Orders",
