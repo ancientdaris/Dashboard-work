@@ -198,6 +198,8 @@ export interface Payment extends BaseEntity {
   notes: string | null;
   is_same_day: boolean;
   created_by: string;
+  gateway_transaction_id: string | null;
+  gateway_name: string | null;
   invoice?: Invoice;
   retailer?: Retailer;
   same_day_payment?: SameDayPayment;

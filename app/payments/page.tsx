@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -12,24 +15,204 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from "@/components/ui/sheet";
 import { 
   Search, 
   Plus,
   Download,
-  CreditCard
+  CreditCard,
+  Eye,
+  Trash2,
+  Loader2
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { getPayments, createPayment, deletePayment, generatePaymentNumber } from "@/src/services/paymentService";
+import { getRetailers } from "@/src/services/retailerService";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { useToast } from "@/components/ui/use-toast";
+import type { Payment, Retailer, PaymentStatus } from "@/types/database.types";
+
+type PaymentWithRelations = Payment & {
+  retailer?: Retailer;
+};
 
 export default function PaymentsPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  
+  const [payments, setPayments] = useState<PaymentWithRelations[]>([]);
+  const [retailers, setRetailers] = useState<Retailer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all-statuses");
+  const [methodFilter, setMethodFilter] = useState<string>("all-methods");
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    retailer_id: "",
+    amount: "",
+    payment_method: "",
+    reference_number: "",
+    notes: "",
+    status: "completed" as PaymentStatus,
+  });
+
+  useEffect(() => {
+    loadPayments();
+    loadRetailers();
+  }, []);
+
+  const loadPayments = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await getPayments({}, { orderBy: { column: 'payment_date', ascending: false } });
+      
+      if (error) throw error;
+      setPayments(data || []);
+    } catch (error) {
+      console.error("Error loading payments:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load payments",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadRetailers = async () => {
+    try {
+      const { data, error } = await getRetailers({ is_active: true });
+      if (error) throw error;
+      setRetailers(data || []);
+    } catch (error) {
+      console.error("Error loading retailers:", error);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "User not authenticated",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const paymentNumber = await generatePaymentNumber();
+      
+      const { data, error } = await createPayment({
+        payment_number: paymentNumber,
+        retailer_id: formData.retailer_id,
+        amount: parseFloat(formData.amount),
+        payment_method: formData.payment_method || null,
+        reference_number: formData.reference_number || null,
+        notes: formData.notes || null,
+        status: formData.status,
+        created_by: user.id,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Payment recorded successfully",
+      });
+
+      setIsSheetOpen(false);
+      resetForm();
+      loadPayments();
+    } catch (error) {
+      console.error("Error creating payment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to record payment",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this payment?")) return;
+
+    try {
+      const { error } = await deletePayment(id);
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Payment deleted successfully",
+      });
+
+      loadPayments();
+    } catch (error) {
+      console.error("Error deleting payment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete payment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      retailer_id: "",
+      amount: "",
+      payment_method: "",
+      reference_number: "",
+      notes: "",
+      status: "completed",
+    });
+  };
+
+  const getStatusBadge = (status: PaymentStatus) => {
+    const variants: Record<PaymentStatus, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
+      completed: { variant: "default", label: "Completed" },
+      pending: { variant: "secondary", label: "Pending" },
+      failed: { variant: "destructive", label: "Failed" },
+      refunded: { variant: "outline", label: "Refunded" },
+    };
+    
+    const config = variants[status] || variants.pending;
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const filteredPayments = payments.filter((payment) => {
+    const matchesSearch = 
+      payment.payment_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payment.retailer?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payment.reference_number?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStatus = statusFilter === "all-statuses" || payment.status === statusFilter;
+    const matchesMethod = methodFilter === "all-methods" || payment.payment_method === methodFilter;
+    
+    return matchesSearch && matchesStatus && matchesMethod;
+  });
 
   return (
     <ProtectedRoute>
       <div className="flex h-screen">
         <Sidebar />
         <div className="flex-1 overflow-auto bg-gray-50">
-          {/* Main Content */}
           <div className="p-8 space-y-6">
             {/* Page Header */}
             <div className="flex items-start justify-between">
@@ -40,139 +223,297 @@ export default function PaymentsPage() {
                 </p>
               </div>
               <div className="flex items-center gap-3">
-              <Button variant="outline" className="flex items-center gap-2">
-                <Download className="h-4 w-4" />
-                <span>Export</span>
-              </Button>
-              <Button className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                <span>Record Payment</span>
-              </Button>
-            </div>
-          </div>
-
-          {/* Filters Section */}
-          <div className="flex items-center gap-4">
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <Input 
-                placeholder="Search..." 
-                className="pl-10 bg-white/50 border-muted"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Select defaultValue="all-statuses">
-              <SelectTrigger className="w-[180px] bg-white/50 border-muted">
-                <SelectValue placeholder="All Statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="all-statuses">All Statuses</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <Select defaultValue="all-methods">
-              <SelectTrigger className="w-[180px] bg-white/50 border-muted">
-                <SelectValue placeholder="All Methods" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="all-methods">All Methods</SelectItem>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="card">Card</SelectItem>
-                  <SelectItem value="upi">UPI</SelectItem>
-                  <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="cheque">Cheque</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <Select defaultValue="all-time">
-              <SelectTrigger className="w-[180px] bg-white/50 border-muted">
-                <SelectValue placeholder="All Time" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="all-time">All Time</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="this-week">This Week</SelectItem>
-                  <SelectItem value="this-month">This Month</SelectItem>
-                  <SelectItem value="last-month">Last Month</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Recent Payments Section */}
-          <Card className="transition-all hover:shadow-md">
-            {/* Section Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Recent Payments</h2>
-              <p className="text-sm text-gray-500">0 of 0 payments</p>
-            </div>
-
-            {/* Table Header */}
-            <div className="border-b border-gray-200">
-              <div className="grid grid-cols-12 gap-4 px-6 py-3">
-                <div className="col-span-2">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Payment
-                  </p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer
-                  </p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Amount
-                  </p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Method
-                  </p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </p>
-                </div>
-                <div className="col-span-1">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </p>
-                </div>
-                <div className="col-span-1">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </p>
-                </div>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Download className="h-4 w-4" />
+                  <span>Export</span>
+                </Button>
+                <Button 
+                  className="flex items-center gap-2"
+                  onClick={() => setIsSheetOpen(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Record Payment</span>
+                </Button>
               </div>
             </div>
 
-            {/* Empty State */}
-            <div className="flex flex-col items-center justify-center py-16">
-              <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
-                <CreditCard className="h-8 w-8 text-gray-400" />
+            {/* Filters Section */}
+            <div className="flex items-center gap-4">
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input 
+                  placeholder="Search..." 
+                  className="pl-10 bg-white/50 border-muted"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No payments found</h3>
-              <p className="text-sm text-gray-500 mb-6">
-                Record your first payment to get started.
-              </p>
-              <Button className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                <span>Record Payment</span>
-              </Button>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px] bg-white/50 border-muted">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all-statuses">All Statuses</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                    <SelectItem value="refunded">Refunded</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <Select value={methodFilter} onValueChange={setMethodFilter}>
+                <SelectTrigger className="w-[180px] bg-white/50 border-muted">
+                  <SelectValue placeholder="All Methods" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all-methods">All Methods</SelectItem>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="card">Card</SelectItem>
+                    <SelectItem value="upi">UPI</SelectItem>
+                    <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </div>
-          </Card>
+
+            {/* Payments Table */}
+            <Card className="transition-all hover:shadow-md">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900">Recent Payments</h2>
+                <p className="text-sm text-gray-500">
+                  {filteredPayments.length} of {payments.length} payments
+                </p>
+              </div>
+
+              {loading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                </div>
+              ) : filteredPayments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
+                    <CreditCard className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No payments found</h3>
+                  <p className="text-sm text-gray-500 mb-6">
+                    {payments.length === 0 ? "Record your first payment to get started." : "Try adjusting your filters."}
+                  </p>
+                  <Button 
+                    className="flex items-center gap-2"
+                    onClick={() => setIsSheetOpen(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Record Payment</span>
+                  </Button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="border-b border-gray-200">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Payment #
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Retailer
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Amount
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Method
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Date
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {filteredPayments.map((payment) => (
+                        <tr key={payment.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {payment.payment_number}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {payment.retailer?.name || "N/A"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            ₹{payment.amount.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {payment.payment_method || "N/A"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {getStatusBadge(payment.status)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {new Date(payment.payment_date).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(payment.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Payment Form Sheet */}
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent className="sm:max-w-[540px] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Record Payment</SheetTitle>
+            <SheetDescription>
+              Add a new payment transaction to the system
+            </SheetDescription>
+          </SheetHeader>
+          
+          <form onSubmit={handleSubmit} className="space-y-6 mt-6">
+            <div className="space-y-2">
+              <Label htmlFor="retailer">Retailer *</Label>
+              <Select
+                value={formData.retailer_id}
+                onValueChange={(value) => setFormData({ ...formData, retailer_id: value })}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select retailer" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {retailers.map((retailer) => (
+                      <SelectItem key={retailer.id} value={retailer.id}>
+                        {retailer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount *</Label>
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={formData.amount}
+                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="payment_method">Payment Method</Label>
+              <Select
+                value={formData.payment_method}
+                onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="card">Card</SelectItem>
+                    <SelectItem value="upi">UPI</SelectItem>
+                    <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">Status *</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData({ ...formData, status: value as PaymentStatus })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                    <SelectItem value="refunded">Refunded</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="reference_number">Reference Number</Label>
+              <Input
+                id="reference_number"
+                placeholder="Transaction reference"
+                value={formData.reference_number}
+                onChange={(e) => setFormData({ ...formData, reference_number: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                placeholder="Additional notes..."
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={3}
+              />
+            </div>
+
+            <SheetFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsSheetOpen(false);
+                  resetForm();
+                }}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Recording...
+                  </>
+                ) : (
+                  "Record Payment"
+                )}
+              </Button>
+            </SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>
     </ProtectedRoute>
   );
 }
