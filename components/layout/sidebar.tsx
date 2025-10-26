@@ -47,10 +47,6 @@ const sidebarItems = [
     icon: Box,
     subItems: [
       {
-        title: "All Products",
-        href: "/products",
-      },
-      {
         title: "Add Product",
         href: "/products/add",
       }
@@ -66,10 +62,6 @@ const sidebarItems = [
     href: "/warehouses",
     icon: Warehouse,
     subItems: [
-      {
-        title: "Warehouse List",
-        href: "/warehouses",
-      },
       {
         title: "Wholesaler Links",
         href: "/wholesaler-links",
@@ -212,52 +204,37 @@ export function Sidebar() {
               onMouseLeave={() => hasSubItems && !isCollapsed && setOpenDropdown(null)}
             >
               <div className="relative">
-                <Button
-                  asChild={!hasSubItems}
-                  variant={isActive ? "secondary" : "ghost"}
+                <Link 
+                  href={item.href} 
                   className={cn(
-                    "w-full justify-start gap-2 text-sm font-medium transition-colors group-hover:bg-gray-9",
-                    isCollapsed ? "justify-center px-2" : "px-3",
-                    hasSubItems ? "pr-1" : "",
-                    isActive ? "bg-gray-900 text-white hover:bg-gray-800" : ""
+                    "flex items-center w-full h-full px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                    isCollapsed ? "justify-center px-2" : "",
+                    isActive 
+                      ? "bg-gray-900 text-white hover:bg-gray-800" 
+                      : "hover:bg-gray-100"
                   )}
-                  onClick={(e) => {
-                    if (hasSubItems) {
-                      e.preventDefault();
-                      setOpenDropdown(openDropdown === item.title ? null : item.title);
-                    }
-                  }}
                 >
-                  {!hasSubItems ? (
-                    <Link href={item.href} className="flex items-center w-full h-full">
-                      <Icon className="h-4 w-4" />
-                      {!isCollapsed && (
-                        <div className="flex items-center justify-between w-full">
-                          <span>{item.title}</span>
-                        </div>
+                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  {!isCollapsed && (
+                    <div className="flex items-center justify-between w-full ml-2">
+                      <span>{item.title}</span>
+                      {hasSubItems && (
+                        <ChevronRight className={cn(
+                          "h-4 w-4 transition-transform duration-200 flex-shrink-0 ml-2",
+                          openDropdown === item.title ? "rotate-90" : ""
+                        )} />
                       )}
-                    </Link>
-                  ) : (
-                    <>
-                      <Icon className="h-4 w-4" />
-                      {!isCollapsed && (
-                        <div className="flex items-center justify-between w-full">
-                          <span>{item.title}</span>
-                          <ChevronRight className={cn(
-                            "h-4 w-4 transition-transform duration-200",
-                            openDropdown === item.title ? "rotate-90" : ""
-                          )} />
-                        </div>
-                      )}
-                    </>
+                    </div>
                   )}
-                </Button>
+                </Link>
                 {hasSubItems && (
                   <div 
                     className={cn(
-                      "overflow-hidden transition-all duration-200 ease-in-out",
+                      "overflow-hidden transition-all duration-200 ease-in-out group-hover:max-h-40 group-hover:opacity-100 hover:bg-transparent",
                       openDropdown === item.title ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
                     )}
+                    onMouseEnter={() => setOpenDropdown(item.title)}
+                    onMouseLeave={() => setOpenDropdown(null)}
                   >
                     <div className="py-1 pl-2 space-y-1">
                       {item.subItems?.map((subItem) => {
