@@ -141,6 +141,7 @@ export interface Retailer extends BaseEntity {
   credit_limit: number;
   outstanding_balance: number;
   is_active: boolean;
+  gstin: string | null;
 }
 
 export interface Order extends BaseEntity {
