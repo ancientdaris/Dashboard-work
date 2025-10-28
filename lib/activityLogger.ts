@@ -19,7 +19,7 @@ export const logActivity = async (params: LogActivityParams): Promise<void> => {
       p_entity_type: params.entityType || null,
       p_entity_id: params.entityId || null,
       p_metadata: params.metadata || null
-    });
+    } as any);
     
     if (error) {
       console.error('Error logging activity:', error);

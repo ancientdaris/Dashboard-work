@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 type Order = Database['public']['Tables']['orders']['Row'];
 type Retailer = Database['public']['Tables']['retailers']['Row'];
 
-export default function CreateInvoicePage() {
+function CreateInvoiceContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -367,3 +367,10 @@ export default function CreateInvoicePage() {
     </ProtectedRoute>
   );
 }
+
+export default function CreateInvoicePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <CreateInvoiceContent />
+    </Suspense>
+  )}
