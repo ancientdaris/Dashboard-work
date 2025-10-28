@@ -28,7 +28,6 @@ import {
   Plus,
   Download,
   CreditCard,
-  Eye,
   Trash2,
   Loader2
 } from "lucide-react";
@@ -44,12 +43,22 @@ type PaymentWithRelations = Payment & {
   retailer?: Retailer;
 };
 
+type Invoice = {
+  id: string;
+  invoice_number: string;
+  total_amount: number;
+  retailer_id: string;
+  status: string;
+  retailer?: Retailer;
+};
+
 export default function PaymentsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   
   const [payments, setPayments] = useState<PaymentWithRelations[]>([]);
   const [retailers, setRetailers] = useState<Retailer[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all-statuses");
@@ -59,18 +68,28 @@ export default function PaymentsPage() {
   
   // Form state
   const [formData, setFormData] = useState({
+    invoice_id: "",
     retailer_id: "",
     amount: "",
     payment_method: "",
     reference_number: "",
     notes: "",
+    payment_date: new Date().toISOString().split('T')[0],
+    is_same_day: false,
     status: "completed" as PaymentStatus,
   });
 
   useEffect(() => {
     loadPayments();
     loadRetailers();
+    loadInvoices();
   }, []);
+
+  useEffect(() => {
+    if (formData.invoice_id) {
+      loadInvoiceData(formData.invoice_id);
+    }
+  }, [formData.invoice_id]);
 
   const loadPayments = async () => {
     try {
@@ -101,6 +120,44 @@ export default function PaymentsPage() {
     }
   };
 
+  const loadInvoices = async () => {
+    try {
+      const supabase = (await import('@/lib/supabase/client')).createClient();
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('*, retailer:retailers(*)')
+        .in('status', ['draft', 'sent', 'overdue'])
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setInvoices(data || []);
+    } catch (error) {
+      console.error("Error loading invoices:", error);
+    }
+  };
+
+  const loadInvoiceData = async (invoiceId: string) => {
+    try {
+      const supabase = (await import('@/lib/supabase/client')).createClient();
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('id', invoiceId)
+        .single();
+      
+      if (error) throw error;
+      if (data) {
+        setFormData(prev => ({
+          ...prev,
+          retailer_id: data.retailer_id || '',
+          amount: data.total_amount.toString(),
+        }));
+      }
+    } catch (error) {
+      console.error("Error loading invoice data:", error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -119,14 +176,26 @@ export default function PaymentsPage() {
       
       const { data, error } = await createPayment({
         payment_number: paymentNumber,
+        invoice_id: formData.invoice_id || null,
         retailer_id: formData.retailer_id,
         amount: parseFloat(formData.amount),
         payment_method: formData.payment_method || null,
+        payment_date: formData.payment_date,
         reference_number: formData.reference_number || null,
         notes: formData.notes || null,
+        is_same_day: formData.is_same_day,
         status: formData.status,
         created_by: user.id,
       });
+
+      // Update invoice status to paid if invoice is selected
+      if (formData.invoice_id && formData.status === 'completed') {
+        const supabase = (await import('@/lib/supabase/client')).createClient();
+        await supabase
+          .from('invoices')
+          .update({ status: 'paid' })
+          .eq('id', formData.invoice_id);
+      }
 
       if (error) throw error;
 
@@ -175,11 +244,14 @@ export default function PaymentsPage() {
 
   const resetForm = () => {
     setFormData({
+      invoice_id: "",
       retailer_id: "",
       amount: "",
       payment_method: "",
       reference_number: "",
       notes: "",
+      payment_date: new Date().toISOString().split('T')[0],
+      is_same_day: false,
       status: "completed",
     });
   };
@@ -213,12 +285,6 @@ export default function PaymentsPage() {
       txtContent += `Reference Number: ${payment.reference_number || "N/A"}\n`;
       if (payment.notes) {
         txtContent += `Notes: ${payment.notes}\n`;
-      }
-      if (payment.gateway_transaction_id) {
-        txtContent += `Gateway Transaction ID: ${payment.gateway_transaction_id}\n`;
-      }
-      if (payment.gateway_name) {
-        txtContent += `Gateway: ${payment.gateway_name}\n`;
       }
       txtContent += `Same Day Payment: ${payment.is_same_day ? "Yes" : "No"}\n`;
       txtContent += "\n";
@@ -413,6 +479,9 @@ export default function PaymentsPage() {
                           Date
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Type
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Actions
                         </th>
                       </tr>
@@ -429,7 +498,7 @@ export default function PaymentsPage() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             ₹{payment.amount.toLocaleString()}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 capitalize">
                             {payment.payment_method || "N/A"}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -437,6 +506,15 @@ export default function PaymentsPage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {new Date(payment.payment_date).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {payment.is_same_day ? (
+                              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                                Same Day
+                              </Badge>
+                            ) : (
+                              <span className="text-sm text-gray-500">Regular</span>
+                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <div className="flex items-center gap-2">
@@ -471,6 +549,38 @@ export default function PaymentsPage() {
           </SheetHeader>
           
           <form onSubmit={handleSubmit} className="space-y-6 mt-6">
+            <div className="space-y-2">
+              <Label htmlFor="invoice">Invoice (Optional)</Label>
+              <Select
+                value={formData.invoice_id || undefined}
+                onValueChange={(value) => setFormData({ ...formData, invoice_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select invoice (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {invoices.map((invoice) => (
+                      <SelectItem key={invoice.id} value={invoice.id}>
+                        {invoice.invoice_number} - ₹{invoice.total_amount.toLocaleString()}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              {formData.invoice_id && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setFormData({ ...formData, invoice_id: "", retailer_id: "", amount: "" })}
+                  className="mt-1 h-8 px-2 text-xs"
+                >
+                  Clear Invoice
+                </Button>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="retailer">Retailer *</Label>
               <Select
@@ -558,6 +668,17 @@ export default function PaymentsPage() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="payment_date">Payment Date *</Label>
+              <Input
+                id="payment_date"
+                type="date"
+                value={formData.payment_date}
+                onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="notes">Notes</Label>
               <Textarea
                 id="notes"
@@ -565,6 +686,20 @@ export default function PaymentsPage() {
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="space-y-0.5">
+                <Label htmlFor="is_same_day" className="text-base">Same Day Payment</Label>
+                <p className="text-sm text-muted-foreground">Mark this as a same-day payment</p>
+              </div>
+              <input
+                type="checkbox"
+                id="is_same_day"
+                checked={formData.is_same_day}
+                onChange={(e) => setFormData({ ...formData, is_same_day: e.target.checked })}
+                className="h-5 w-5 rounded border-gray-300"
               />
             </div>
 
