@@ -503,53 +503,6 @@ export default function InventoryPage() {
             </Card>
           </div>
 
-          {/* Debug Info - Remove this after testing */}
-          <Card className="p-4 bg-blue-50 border-blue-200">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-blue-900">Debug Info:</p>
-                <div className="grid grid-cols-2 gap-x-4">
-                  <p className="text-xs text-blue-700">Inventory Count: {inventory.length}</p>
-                  <p className="text-xs text-blue-700">Products Count: {products.length}</p>
-                  <p className="text-xs text-blue-700">Filtered Count: {filteredInventory.length}</p>
-                  <p className="text-xs text-blue-700">Loading: {loading ? 'Yes' : 'No'}</p>
-                </div>
-                {inventory.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-blue-200">
-                    <p className="text-xs text-blue-700 font-semibold">First Item Details:</p>
-                    <p className="text-xs text-blue-700">• Product: {inventory[0].products?.name || 'No product name'}</p>
-                    <p className="text-xs text-blue-700">• SKU: {inventory[0].products?.sku || 'N/A'}</p>
-                    <p className="text-xs text-blue-700">• Active: {inventory[0].products?.is_active ? 'Yes' : 'No'}</p>
-                    <p className="text-xs text-blue-700">• Stock: {inventory[0].quantity_in_stock}</p>
-                    <p className="text-xs text-blue-700">• Warehouse: {inventory[0].warehouses?.name || inventory[0].warehouse_location || 'No warehouse'}</p>
-                  </div>
-                )}
-                {products.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-blue-200">
-                    <p className="text-xs text-blue-700 font-semibold">Sample Products:</p>
-                    {products.slice(0, 3).map((p, i) => (
-                      <p key={p.id} className="text-xs text-blue-700">• {p.name} ({p.sku})</p>
-                    ))}
-                  </div>
-                )}
-                {errorMessage && (
-                  <p className="text-xs text-red-700 font-semibold mt-2">Error: {errorMessage}</p>
-                )}
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
-                  setLoading(true);
-                  fetchInventory();
-                  fetchProducts();
-                }}
-              >
-                Refresh Data
-              </Button>
-            </div>
-          </Card>
-
           {/* Search and Filters */}
           <div className="flex items-center gap-4">
             <div className="relative flex-1">
@@ -591,144 +544,180 @@ export default function InventoryPage() {
           )}
 
           {/* Inventory Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredInventory.length === 0 ? (
-              <Card className="col-span-full p-8 text-center">
-                <p className="text-xl text-muted-foreground">
+              <Card className="col-span-full p-12 text-center">
+                <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-xl font-medium text-muted-foreground">
                   No inventory items found
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Try adjusting your search or filters
                 </p>
               </Card>
             ) : (
               filteredInventory.map((item) => (
                 <Card
                   key={item.id}
-                  className="p-4 space-y-3 hover:shadow-md transition-all"
+                  className="group relative overflow-hidden border-2 hover:border-primary/50 hover:shadow-lg transition-all duration-200"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-base">
-                        {item.products?.name || "Unknown Product"}
-                      </h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        SKU: {item.products?.sku || "N/A"}
-                      </p>
-                      {(item.products?.category || item.products?.brand) && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {item.products?.brand && `${item.products.brand}`}
-                          {item.products?.brand && item.products?.category && " • "}
-                          {item.products?.category && `${item.products.category}`}
+                  {/* Header Section */}
+                  <div className="p-5 pb-4 bg-gradient-to-br from-gray-50 to-white">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-lg text-gray-900 truncate group-hover:text-primary transition-colors">
+                          {item.products?.name || "Unknown Product"}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <Badge variant="outline" className="text-xs font-mono">
+                            {item.products?.sku || "N/A"}
+                          </Badge>
+                        </div>
+                        {(item.products?.category || item.products?.brand) && (
+                          <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
+                            {item.products?.brand && (
+                              <span className="font-medium">{item.products.brand}</span>
+                            )}
+                            {item.products?.brand && item.products?.category && (
+                              <span>•</span>
+                            )}
+                            {item.products?.category && (
+                              <span>{item.products.category}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {item.quantity_in_stock <= item.reorder_level && (
+                        <Badge 
+                          variant="destructive" 
+                          className="shrink-0 shadow-sm"
+                        >
+                          {item.quantity_in_stock === 0 ? "Out" : "Low"}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Stock Control Section */}
+                  <div className="px-5 py-4 border-t bg-white">
+                    <div className="space-y-4">
+                      {/* Stock Quantity */}
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                          Stock Quantity
+                        </p>
+                        {editingItemId === item.id ? (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              value={manualQuantity}
+                              onChange={(e) => setManualQuantity(e.target.value)}
+                              className="h-10 text-center font-bold text-lg"
+                              autoFocus
+                            />
+                            <Button
+                              size="icon"
+                              className="h-10 w-10 bg-green-600 hover:bg-green-700 shrink-0"
+                              onClick={() => saveManualQuantity(item)}
+                              disabled={updatingItems.has(item.id)}
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="h-10 w-10 shrink-0"
+                              onClick={cancelManualEdit}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between gap-2">
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="h-10 w-10 hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+                              onClick={() => updateStockQuantity(item, -1)}
+                              disabled={
+                                item.quantity_in_stock === 0 ||
+                                updatingItems.has(item.id)
+                              }
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <div className="flex-1 text-center">
+                              <span
+                                className={`text-3xl font-bold ${
+                                  item.quantity_in_stock === 0
+                                    ? "text-red-600"
+                                    : item.quantity_in_stock <= item.reorder_level
+                                    ? "text-orange-600"
+                                    : "text-gray-900"
+                                }`}
+                              >
+                                {updatingItems.has(item.id)
+                                  ? "..."
+                                  : item.quantity_in_stock}
+                              </span>
+                            </div>
+                            <Button
+                              size="icon"
+                              className="h-10 w-10 bg-green-600 hover:bg-green-700"
+                              onClick={() => updateStockQuantity(item, 1)}
+                              disabled={updatingItems.has(item.id)}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="h-10 w-10 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
+                              onClick={() => startManualEdit(item)}
+                              disabled={updatingItems.has(item.id)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Reorder Info */}
+                      <div className="grid grid-cols-2 gap-3 pt-3 border-t">
+                        <div className="text-center p-2 bg-gray-50 rounded-lg">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                            Reorder Level
+                          </p>
+                          <p className="text-lg font-bold text-gray-900">
+                            {item.reorder_level}
+                          </p>
+                        </div>
+                        <div className="text-center p-2 bg-gray-50 rounded-lg">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                            Reorder Qty
+                          </p>
+                          <p className="text-lg font-bold text-gray-900">
+                            {item.reorder_quantity}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Warehouse Location */}
+                  {(item.warehouses?.name || item.warehouse_location) && (
+                    <div className="px-5 py-3 bg-gradient-to-br from-blue-50 to-indigo-50 border-t">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-blue-600 shrink-0" />
+                        <p className="text-sm font-medium text-blue-900 truncate">
+                          {item.warehouses?.name || item.warehouse_location}
+                        </p>
+                      </div>
+                      {item.warehouses?.location && (
+                        <p className="text-xs text-blue-700 ml-6 mt-0.5">
+                          {item.warehouses.location}
                         </p>
                       )}
-                    </div>
-                    {item.quantity_in_stock <= item.reorder_level && (
-                      <Badge variant="destructive" className="ml-2">
-                        Low Stock
-                      </Badge>
-                    )}
-                  </div>
-
-                  <div className="flex items-end justify-between pt-2 border-t">
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                        In Stock
-                      </p>
-                      {editingItemId === item.id ? (
-                        <div className="flex items-center gap-2 mt-1">
-                          <Input
-                            type="number"
-                            value={manualQuantity}
-                            onChange={(e) => setManualQuantity(e.target.value)}
-                            className="w-20 h-9 text-center"
-                          />
-                          <Button
-                            size="icon"
-                            variant="default"
-                            className="h-8 w-8 bg-green-600 hover:bg-green-700"
-                            onClick={() => saveManualQuantity(item)}
-                            disabled={updatingItems.has(item.id)}
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="secondary"
-                            className="h-8 w-8"
-                            onClick={cancelManualEdit}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 mt-1">
-                          <Button
-                            size="icon"
-                            variant="destructive"
-                            className="h-8 w-8"
-                            onClick={() => updateStockQuantity(item, -1)}
-                            disabled={
-                              item.quantity_in_stock === 0 ||
-                              updatingItems.has(item.id)
-                            }
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <span
-                            className={`text-xl font-bold min-w-[40px] text-center ${
-                              item.quantity_in_stock <= item.reorder_level
-                                ? "text-red-600"
-                                : "text-gray-900"
-                            }`}
-                          >
-                            {updatingItems.has(item.id)
-                              ? "..."
-                              : item.quantity_in_stock}
-                          </span>
-                          <Button
-                            size="icon"
-                            variant="default"
-                            className="h-8 w-8 bg-green-600 hover:bg-green-700"
-                            onClick={() => updateStockQuantity(item, 1)}
-                            disabled={updatingItems.has(item.id)}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="secondary"
-                            className="h-8 w-8"
-                            onClick={() => startManualEdit(item)}
-                            disabled={updatingItems.has(item.id)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                        Reorder Level
-                      </p>
-                      <p className="text-sm font-semibold text-gray-700 mt-0.5">
-                        {item.reorder_level}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                        Reorder Qty
-                      </p>
-                      <p className="text-sm font-semibold text-gray-700 mt-0.5">
-                        {item.reorder_quantity}
-                      </p>
-                    </div>
-                  </div>
-
-                  {(item.warehouses?.name || item.warehouse_location) && (
-                    <div className="flex items-center gap-2 pt-2 border-t">
-                      <MapPin className="h-4 w-4 text-primary" />
-                      <p className="text-xs text-gray-600">
-                        {item.warehouses?.name || item.warehouse_location}
-                        {item.warehouses?.location && ` - ${item.warehouses.location}`}
-                      </p>
                     </div>
                   )}
                 </Card>
