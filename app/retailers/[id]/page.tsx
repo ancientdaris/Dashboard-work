@@ -156,7 +156,7 @@ export default function RetailerDetailPage() {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Retailers
               </Button>
-              <Button>
+              <Button onClick={() => router.push(`/retailers/${retailerId}/edit`)}>
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Details
               </Button>
