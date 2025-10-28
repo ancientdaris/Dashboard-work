@@ -184,7 +184,7 @@ export default function AttributesPage() {
       <div className="flex h-screen">
         <Sidebar />
         <div className="flex-1 overflow-auto bg-gray-50">
-          <div className="p-8 max-w-5xl mx-auto space-y-6">
+          <div className="p-8 max-w-full mx-auto space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
               <Button 
@@ -197,11 +197,34 @@ export default function AttributesPage() {
               </Button>
             </div>
 
-            <div>
-              <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Product Attributes</h1>
-              <p className="text-muted-foreground mt-1">
-                Manage categories, sizes, colors, and other product attributes
-              </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Product Attributes</h1>
+                <p className="text-muted-foreground mt-1">
+                  Manage categories, sizes, colors, and other product attributes
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Label htmlFor="attributeType" className="text-sm font-medium">Attribute Type:</Label>
+                <Select
+                  value={selectedType}
+                  onValueChange={(value) => {
+                    setSelectedType(value as AttributeType);
+                    resetForm();
+                  }}
+                >
+                  <SelectTrigger id="attributeType" className="w-[180px]">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(attributeConfig).map(([key, config]) => (
+                      <SelectItem key={key} value={key}>
+                        {config.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Error Message */}
@@ -218,33 +241,6 @@ export default function AttributesPage() {
                 <AlertDescription className="text-green-600">{successMessage}</AlertDescription>
               </Alert>
             )}
-
-            {/* Type Selector */}
-            <Card>
-              <CardContent className="p-6">
-                <div className="space-y-2">
-                  <Label htmlFor="attributeType">Attribute Type</Label>
-                  <Select
-                    value={selectedType}
-                    onValueChange={(value) => {
-                      setSelectedType(value as AttributeType);
-                      resetForm();
-                    }}
-                  >
-                    <SelectTrigger id="attributeType">
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(attributeConfig).map(([key, config]) => (
-                        <SelectItem key={key} value={key}>
-                          {config.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Add Button */}
             <Button

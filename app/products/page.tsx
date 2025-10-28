@@ -36,6 +36,8 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [categories, setCategories] = useState<string[]>([]);
 
   const fetchProducts = async () => {
     try {
@@ -47,6 +49,10 @@ export default function ProductsPage() {
 
       if (error) throw error;
       setProducts(data || []);
+      
+      // Extract unique categories
+      const uniqueCategories = Array.from(new Set(data?.map(p => p.category).filter(Boolean))) as string[];
+      setCategories(uniqueCategories.sort());
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
@@ -72,7 +78,13 @@ export default function ProductsPage() {
       matchesStatus = product.is_active === false;
     }
 
-    return matchesSearch && matchesStatus;
+    // Category filter
+    let matchesCategory = true;
+    if (categoryFilter !== 'all') {
+      matchesCategory = product.category === categoryFilter;
+    }
+
+    return matchesSearch && matchesStatus && matchesCategory;
   });
 
   if (loading) {
@@ -102,7 +114,49 @@ export default function ProductsPage() {
                   Manage your product catalog and inventory
                 </p>
               </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <Filter className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium">Filter:</span>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="All Products" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Products</SelectItem>
+                      <SelectItem value="active">Active Only</SelectItem>
+                      <SelectItem value="inactive">Inactive Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Tags className="h-4 w-4 text-purple-600" />
+                  <span className="text-sm font-medium">Category:</span>
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => router.push('/products/attributes')}
+                >
+                  <Tags className="h-4 w-4 mr-2" />
+                  Manage Attributes
+                </Button>
+              </div>
             </div>
+
+            
 
             {/* Search and Actions */}
             <div className="flex items-center gap-3">
@@ -121,37 +175,6 @@ export default function ProductsPage() {
               </Button>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => router.push('/products/attributes')}
-                className="flex-1 sm:flex-none"
-              >
-                <Tags className="h-4 w-4 mr-2" />
-                Manage Attributes
-              </Button>
-            </div>
-
-            {/* Filter by Status */}
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <Filter className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium">Filter:</span>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="All Products" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Products</SelectItem>
-                      <SelectItem value="active">Active Only</SelectItem>
-                      <SelectItem value="inactive">Inactive Only</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Products Table */}
             <Card>
