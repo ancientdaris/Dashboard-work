@@ -52,6 +52,8 @@ export async function logActivity({
       metadata: metadata || null,
       user_agent: userAgent,
       ip_address: null, // Will be captured by database trigger or backend
+      changed_from: {},
+      changed_to: {}
     };
 
     const { error, data } = await supabase

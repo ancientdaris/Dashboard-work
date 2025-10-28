@@ -147,9 +147,10 @@ export default function InventoryPage() {
       
       setInventory(activeInventory);
       setErrorMessage('');
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error fetching inventory:", error);
-      setErrorMessage(error.message || 'Failed to fetch inventory');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch inventory';
+      setErrorMessage(errorMessage);
     } finally {
       setLoading(false);
     }

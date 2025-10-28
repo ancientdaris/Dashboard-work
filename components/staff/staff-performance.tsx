@@ -2,12 +2,40 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Calendar, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
+interface StaffMember {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  employee_id: string;
+  department: string;
+  position: string;
+}
+
+interface PerformanceSummary {
+  totalOrders: number;
+  totalSales: number;
+  averageEfficiency: string | null;
+  averageCustomerSatisfaction: string | null;
+}
+
+interface PerformanceData {
+  id: string;
+  staff_id: string;
+  date: string;
+  orders_handled: number;
+  total_sales: string | number;
+  efficiency_score: number | null;
+  customer_satisfaction_score: number | null;
+  staff?: StaffMember;
+}
+
 export default function StaffPerformance() {
-  const [performanceData, setPerformanceData] = useState<any[]>([]);
+  const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState({
     start: new Date(new Date().setDate(1)).toISOString().split('T')[0], // Start of current month
@@ -17,38 +45,56 @@ export default function StaffPerformance() {
   
   const supabase = createClient();
 
-  useEffect(() => {
-    fetchPerformanceData();
-  }, [dateRange]);
-
-  const fetchPerformanceData = async () => {
+  const fetchPerformanceData = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('staff_performance')
         .select(`
           *,
-          staff:staff_id (employee_id, department, position)
+          staff:staff_id (id, first_name, last_name, email, employee_id, department, position)
         `)
         .gte('date', dateRange.start)
         .lte('date', dateRange.end)
         .order('date', { ascending: false });
-      
+
       if (error) throw error;
+      
       setPerformanceData(data || []);
     } catch (error) {
       console.error('Error fetching performance data:', error);
     } finally {
       setLoading(false);
     }
+  }, [dateRange, supabase]);
+
+  useEffect(() => {
+    fetchPerformanceData();
+  }, [fetchPerformanceData]);
+
+  const filteredData = performanceData.filter((item) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      item.staff?.employee_id?.toLowerCase().includes(searchLower) ||
+      item.staff?.department?.toLowerCase().includes(searchLower)
+    );
+  });
+
+  const getPerformanceSummary = (data: PerformanceData[]): PerformanceSummary => {
+    const totalOrders = data.reduce((sum, item) => sum + (item.orders_handled || 0), 0);
+    const totalSales = data.reduce((sum, item) => {
+      const salesValue = typeof item.total_sales === 'number' ? item.total_sales.toString() : item.total_sales || '0';
+      return sum + parseFloat(salesValue);
+    }, 0);
+    const averageEfficiency = data.length > 0 ? (data.reduce((sum, item) => sum + (item.efficiency_score || 0), 0) / data.length).toFixed(1) : null;
+    const averageCustomerSatisfaction = data.length > 0 ? (data.reduce((sum, item) => sum + (item.customer_satisfaction_score || 0), 0) / data.length).toFixed(1) : null;
+
+    return { totalOrders, totalSales, averageEfficiency, averageCustomerSatisfaction };
   };
 
-  const filteredData = performanceData.filter(item => 
-    (item.staff?.employee_id?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (item.staff?.department?.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const performanceSummary = getPerformanceSummary(performanceData);
 
-  const getEfficiencyColor = (score: number | null) => {
+  const getEfficiencyColor = (score: number | null): string => {
     if (score === null) return 'bg-gray-100 text-gray-800';
     if (score >= 80) return 'bg-green-100 text-green-800';
     if (score >= 50) return 'bg-yellow-100 text-yellow-800';
@@ -138,7 +184,12 @@ export default function StaffPerformance() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ₹{performanceData.reduce((sum, item) => sum + parseFloat(item.total_sales || 0), 0).toLocaleString('en-IN', {
+              ₹{performanceData.reduce((sum, item) => {
+                const salesValue = typeof item.total_sales === 'number' 
+                  ? item.total_sales.toString() 
+                  : item.total_sales || '0';
+                return sum + parseFloat(salesValue);
+              }, 0).toLocaleString('en-IN', {
                 maximumFractionDigits: 2,
                 minimumFractionDigits: 2
               })}
@@ -236,7 +287,11 @@ export default function StaffPerformance() {
                   <TableCell className="text-right">{item.orders_handled?.toLocaleString() || '0'}</TableCell>
                   <TableCell className="text-right">
                     {item.total_sales 
-                      ? `₹${parseFloat(item.total_sales).toLocaleString('en-IN', {
+                      ? `₹${parseFloat(
+                          typeof item.total_sales === 'number' 
+                            ? item.total_sales.toString() 
+                            : item.total_sales || '0'
+                        ).toLocaleString('en-IN', {
                           maximumFractionDigits: 2,
                           minimumFractionDigits: 2
                         })}`
