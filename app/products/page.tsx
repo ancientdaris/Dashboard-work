@@ -1,169 +1,227 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Sidebar } from "@/components/layout/sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { ProductsTable } from "@/components/products/products-table";
-import { Plus, Import, Download, Search, X } from "lucide-react";
-import Link from "next/link";
-import { createClient } from "@/lib/supabase";
+import { Plus, Search, Package, Filter, Tags, Loader2, Eye } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { createClient } from "@/lib/supabase/client";
+import type { Database } from "@/types/database.types";
+import Image from "next/image";
 
-interface ProductStats {
-  total: number;
-  outOfStock: number;
-  lowStock: number;
-}
+type Product = Database['public']['Tables']['products']['Row'];
 
 export default function ProductsPage() {
-  const [stats, setStats] = useState<ProductStats>({
-    total: 0,
-    outOfStock: 0,
-    lowStock: 0
-  });
+  const router = useRouter();
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const supabase = createClient();
+  const [statusFilter, setStatusFilter] = useState('all');
 
-  const fetchProductStats = useCallback(async () => {
+  const fetchProducts = async () => {
     try {
-      setLoading(true);
-      
-      // Fetch total products count
-      const { count: totalCount } = await supabase
+      const supabase = createClient();
+      const { data, error } = await supabase
         .from('products')
-        .select('*', { count: 'exact', head: true });
-      
-      // Fetch out of stock products count (assuming we have a stock_quantity column)
-      const { count: outOfStockCount } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true })
-        .lte('stock_quantity', 0);
-      
-      // Fetch low stock products count (assuming low stock is when quantity is less than or equal to 10)
-      const { count: lowStockCount } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true })
-        .gt('stock_quantity', 0)
-        .lte('stock_quantity', 10);
-      
-      setStats({
-        total: totalCount || 0,
-        outOfStock: outOfStockCount || 0,
-        lowStock: lowStockCount || 0
-      });
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setProducts(data || []);
     } catch (error) {
-      console.error('Error fetching product stats:', error);
+      console.error('Error fetching products:', error);
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  };
 
   useEffect(() => {
-    fetchProductStats();
-  }, [fetchProductStats]);
+    fetchProducts();
+  }, []);
+
+  const filteredProducts = products.filter((product) => {
+    // Search filter
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.category?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // Status filter
+    let matchesStatus = true;
+    if (statusFilter === 'active') {
+      matchesStatus = product.is_active === true;
+    } else if (statusFilter === 'inactive') {
+      matchesStatus = product.is_active === false;
+    }
+
+    return matchesSearch && matchesStatus;
+  });
+
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <div className="flex h-screen">
+          <Sidebar />
+          <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen">
+      <div className="flex h-screen">
         <Sidebar />
-
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50">
-          <div className="p-4 md:p-6">
+        <div className="flex-1 overflow-auto bg-gray-50">
+          <div className="p-8 space-y-6">
             {/* Header */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+            <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">Products</h1>
-                <p className="text-muted-foreground">
+                <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Products</h1>
+                <p className="text-muted-foreground mt-1">
                   Manage your product catalog and inventory
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    placeholder="Search products..."
-                    className="pl-9 pr-8 w-[200px] sm:w-[250px] md:w-[300px]"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  {searchQuery && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full"
-                      onClick={() => setSearchQuery('')}
-                    >
-                      <X className="h-4 w-4" />
-                      <span className="sr-only">Clear search</span>
-                    </Button>
-                  )}
-                </div>
-                
-                <Button variant="outline" size="sm" className="h-9">
-                  <Import className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Import</span>
-                </Button>
-                
-                <Button variant="outline" size="sm" className="h-9">
-                  <Download className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Export</span>
-                </Button>
-                
-                <Button asChild size="sm" className="h-9">
-                  <Link href="/products/add">
-                    <Plus className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">Add Product</span>
-                  </Link>
-                </Button>
-              </div>
             </div>
 
-            {/* Stats */}
-            <div className="grid gap-4 mb-6 md:grid-cols-3">
-              <Card className="p-4">
-                <p className="text-sm text-muted-foreground">Total Products</p>
-                {loading ? (
-                  <Skeleton className="h-8 w-20 mt-1" />
-                ) : (
-                  <p className="text-2xl font-bold mt-1 text-blue-600">
-                    {stats.total.toLocaleString()}
-                  </p>
-                )}
-              </Card>
-              <Card className="p-4">
-                <p className="text-sm text-muted-foreground">Out of Stock</p>
-                {loading ? (
-                  <Skeleton className="h-8 w-20 mt-1" />
-                ) : (
-                  <p className="text-2xl font-bold mt-1 text-red-600">
-                    {stats.outOfStock.toLocaleString()}
-                  </p>
-                )}
-              </Card>
-              <Card className="p-4">
-                <p className="text-sm text-muted-foreground">Low Stock</p>
-                {loading ? (
-                  <Skeleton className="h-8 w-20 mt-1" />
-                ) : (
-                  <p className="text-2xl font-bold mt-1 text-yellow-600">
-                    {stats.lowStock.toLocaleString()}
-                  </p>
-                )}
-              </Card>
+            {/* Search and Actions */}
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Search products..."
+                  className="pl-10 bg-white/50 border-muted"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Button onClick={() => router.push('/products/add')}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Product
+              </Button>
             </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => router.push('/products/attributes')}
+                className="flex-1 sm:flex-none"
+              >
+                <Tags className="h-4 w-4 mr-2" />
+                Manage Attributes
+              </Button>
+            </div>
+
+            {/* Filter by Status */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <Filter className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium">Filter:</span>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="All Products" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Products</SelectItem>
+                      <SelectItem value="active">Active Only</SelectItem>
+                      <SelectItem value="inactive">Inactive Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Products Table */}
-            <div className="bg-white rounded-lg border shadow-sm">
-              <ProductsTable searchTerm={searchQuery} />
-            </div>
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[80px]">Image</TableHead>
+                    <TableHead>Product Name</TableHead>
+                    <TableHead>SKU</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Cost</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredProducts.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        No products found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredProducts.map((product) => (
+                      <TableRow key={product.id} className="cursor-pointer hover:bg-gray-50">
+                        <TableCell>
+                          {product.image_url ? (
+                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200">
+                              <Image
+                                src={product.image_url}
+                                alt={product.name}
+                                width={48}
+                                height={48}
+                                className="object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200">
+                              <Package className="h-6 w-6 text-blue-600" />
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell>{product.sku}</TableCell>
+                        <TableCell>{product.category || '-'}</TableCell>
+                        <TableCell className="font-semibold">₹{Number(product.unit_price).toFixed(2)}</TableCell>
+                        <TableCell>{product.cost_price ? `₹${Number(product.cost_price).toFixed(2)}` : '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant={product.is_active ? 'default' : 'secondary'}>
+                            {product.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push(`/products/edit/${product.id}`)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </Card>
           </div>
-        </main>
+        </div>
       </div>
     </ProtectedRoute>
   );

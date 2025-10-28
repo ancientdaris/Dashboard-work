@@ -143,10 +143,19 @@ export default function OrdersPage() {
                 Manage your B2B orders and track deliveries
               </p>
             </div>
-            <Button variant="outline" className="flex items-center gap-2">
-              <FileDown className="h-4 w-4" />
-              Export
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button 
+                onClick={() => router.push('/orders/create')}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Create Order
+              </Button>
+              <Button variant="outline" className="flex items-center gap-2">
+                <FileDown className="h-4 w-4" />
+                Export
+              </Button>
+            </div>
           </div>
 
           {/* Stats Cards */}
