@@ -177,7 +177,11 @@ export default function ProductsPage() {
                     </TableRow>
                   ) : (
                     filteredProducts.map((product) => (
-                      <TableRow key={product.id} className="cursor-pointer hover:bg-gray-50">
+                      <TableRow 
+                        key={product.id} 
+                        className="cursor-pointer hover:bg-gray-50"
+                        onClick={() => router.push(`/products/${product.id}`)}
+                      >
                         <TableCell>
                           {product.image_url ? (
                             <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200">
@@ -209,7 +213,10 @@ export default function ProductsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => router.push(`/products/edit/${product.id}`)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/products/${product.id}`);
+                            }}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
