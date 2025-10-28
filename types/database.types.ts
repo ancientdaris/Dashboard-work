@@ -132,6 +132,7 @@ export interface Retailer extends BaseEntity {
   name: string;
   email: string | null;
   phone: string | null;
+  mobile_number: string | null;
   address: string | null;
   city: string | null;
   state: string | null;
@@ -142,6 +143,35 @@ export interface Retailer extends BaseEntity {
   outstanding_balance: number;
   is_active: boolean;
   gstin: string | null;
+  user_id: string | null;
+  owner_name: string | null;
+  business_type: 'proprietorship' | 'private_limited' | 'llp' | 'other' | null;
+  company_pan_card: string | null;
+  company_pan_card_verified: boolean;
+  gst_certificate: string | null;
+  gst_certificate_verified: boolean;
+  udhyam_aadhar: string | null;
+  udhyam_aadhar_verified: boolean;
+  gumasta_certificate: string | null;
+  gumasta_certificate_verified: boolean;
+  aoa_document: string | null;
+  aoa_document_verified: boolean;
+  moa_document: string | null;
+  moa_document_verified: boolean;
+  certificate_of_incorporation: string | null;
+  certificate_of_incorporation_verified: boolean;
+  cin_number: string | null;
+  owner_pan_card: string | null;
+  owner_pan_card_verified: boolean;
+  owner_aadhar_card_front: string | null;
+  owner_aadhar_card_front_verified: boolean;
+  owner_aadhar_card_back: string | null;
+  owner_aadhar_card_back_verified: boolean;
+  kyc_status: 'pending' | 'submitted' | 'verified' | 'rejected' | null;
+  kyc_submitted_at: string | null;
+  kyc_verified_at: string | null;
+  kyc_rejection_reason: string | null;
+  gst_number: string | null;
 }
 
 export interface Order extends BaseEntity {

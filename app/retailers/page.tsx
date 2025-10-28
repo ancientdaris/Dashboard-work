@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -43,16 +44,89 @@ import {
   Filter,
   Loader2,
   Edit,
-  Trash2
+  Trash2,
+  Upload,
+  FileCheck,
+  X
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { getRetailers, createRetailer, updateRetailer, deleteRetailer } from "@/src/services/retailerService";
 import { useToast } from "@/components/ui/use-toast";
 import type { Retailer } from "@/types/database.types";
+import { createClient } from "@/lib/supabase/client";
+
+type BusinessType = 'proprietorship' | 'private_limited' | 'llp' | 'other';
+
+interface DocumentUpload {
+  file: File;
+  name: string;
+  preview?: string;
+}
+
+const DocumentUploadField = ({
+  label,
+  document,
+  onSelect,
+  onRemove,
+  required = false
+}: {
+  label: string;
+  document: DocumentUpload | null;
+  onSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRemove: () => void;
+  required?: boolean;
+}) => (
+  <div className="space-y-2">
+    <Label>
+      {label} {required && <span className="text-red-600">*</span>}
+    </Label>
+    {document ? (
+      <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-300">
+        <div className="flex items-center gap-2 flex-1">
+          <FileCheck className="h-5 w-5 text-green-600" />
+          <span className="text-sm text-green-900 truncate">{document.name}</span>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={onRemove}
+        >
+          <X className="h-4 w-4 text-red-600" />
+        </Button>
+      </div>
+    ) : (
+      <div>
+        <Input
+          type="file"
+          accept="image/*,application/pdf"
+          onChange={onSelect}
+          className="hidden"
+          id={`file-${label.replace(/\s+/g, '-').toLowerCase()}`}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            const fileInput = window.document.getElementById(`file-${label.replace(/\s+/g, '-').toLowerCase()}`);
+            if (fileInput) {
+              (fileInput as HTMLInputElement).click();
+            }
+          }}
+          className="w-full"
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          Upload {label}
+        </Button>
+      </div>
+    )}
+  </div>
+);
 
 export default function RetailersPage() {
   const { toast } = useToast();
+  const router = useRouter();
   
   const [retailers, setRetailers] = useState<Retailer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,19 +140,37 @@ export default function RetailersPage() {
   // Form state
   const [formData, setFormData] = useState({
     name: "",
+    owner_name: "",
     email: "",
+    password: "",
+    mobile_number: "",
     phone: "",
     address: "",
     city: "",
     state: "",
     postal_code: "",
     country: "India",
+    gst_number: "",
+    business_type: "proprietorship" as BusinessType,
+    cin_number: "",
     tax_id: "",
     gstin: "",
     credit_limit: "0",
     outstanding_balance: "0",
     is_active: true,
   });
+
+  // Document uploads
+  const [companyPanCard, setCompanyPanCard] = useState<DocumentUpload | null>(null);
+  const [gstCertificate, setGstCertificate] = useState<DocumentUpload | null>(null);
+  const [udhyamAadhar, setUdhyamAadhar] = useState<DocumentUpload | null>(null);
+  const [gumastaCertificate, setGumastaCertificate] = useState<DocumentUpload | null>(null);
+  const [aoaDocument, setAoaDocument] = useState<DocumentUpload | null>(null);
+  const [moaDocument, setMoaDocument] = useState<DocumentUpload | null>(null);
+  const [certificateOfIncorporation, setCertificateOfIncorporation] = useState<DocumentUpload | null>(null);
+  const [ownerPanCard, setOwnerPanCard] = useState<DocumentUpload | null>(null);
+  const [ownerAadharCardFront, setOwnerAadharCardFront] = useState<DocumentUpload | null>(null);
+  const [ownerAadharCardBack, setOwnerAadharCardBack] = useState<DocumentUpload | null>(null);
 
   useEffect(() => {
     loadRetailers();
@@ -103,29 +195,135 @@ export default function RetailersPage() {
     }
   };
 
+  const uploadDocument = async (doc: DocumentUpload, path: string): Promise<string | null> => {
+    try {
+      const supabase = createClient();
+      const fileExt = doc.file.name.split('.').pop();
+      const fileName = `${path}_${Date.now()}.${fileExt}`;
+      const filePath = `${path}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('kyc-documents')
+        .upload(filePath, doc.file, {
+          contentType: doc.file.type,
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+      return filePath;
+    } catch (error) {
+      console.error('Upload error:', error);
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validation
+    if (!formData.name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Retailer name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!editingRetailer) {
+      if (!formData.owner_name.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Owner name is required",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!formData.mobile_number.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Mobile number is required",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!formData.email || !formData.password) {
+        toast({
+          title: "Validation Error",
+          description: "Email and password are required for retailer login",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!companyPanCard) {
+        toast({
+          title: "Validation Error",
+          description: "Company PAN card is required",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!ownerPanCard) {
+        toast({
+          title: "Validation Error",
+          description: "Owner PAN card is required",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!ownerAadharCardFront || !ownerAadharCardBack) {
+        toast({
+          title: "Validation Error",
+          description: "Owner Aadhar card (both sides) is required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Business type specific validation
+      if (formData.business_type === 'proprietorship') {
+        if (!gstCertificate && !udhyamAadhar && !gumastaCertificate) {
+          toast({
+            title: "Validation Error",
+            description: "For Proprietorship: Provide at least one document (GST Certificate, Udhyam Aadhar, or Gumasta Certificate)",
+            variant: "destructive",
+          });
+          return;
+        }
+      } else if (formData.business_type === 'private_limited' || formData.business_type === 'llp') {
+        if (!aoaDocument && !moaDocument && !certificateOfIncorporation) {
+          toast({
+            title: "Validation Error",
+            description: "For Private Limited/LLP: Provide at least one document (AOA, MOA, or Certificate of Incorporation)",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
+    
     try {
       setIsSubmitting(true);
+      const supabase = createClient();
       
-      const retailerData = {
-        name: formData.name,
-        email: formData.email || null,
-        phone: formData.phone || null,
-        address: formData.address || null,
-        city: formData.city || null,
-        state: formData.state || null,
-        postal_code: formData.postal_code || null,
-        country: formData.country || null,
-        tax_id: formData.tax_id || null,
-        gstin: formData.gstin || null,
-        credit_limit: parseFloat(formData.credit_limit) || 0,
-        outstanding_balance: parseFloat(formData.outstanding_balance) || 0,
-        is_active: formData.is_active,
-      };
-
       if (editingRetailer) {
+        // Update existing retailer
+        const retailerData = {
+          name: formData.name,
+          email: formData.email || null,
+          phone: formData.phone || null,
+          address: formData.address || null,
+          city: formData.city || null,
+          state: formData.state || null,
+          postal_code: formData.postal_code || null,
+          country: formData.country || null,
+          tax_id: formData.tax_id || null,
+          gstin: formData.gstin || null,
+          credit_limit: parseFloat(formData.credit_limit) || 0,
+          outstanding_balance: parseFloat(formData.outstanding_balance) || 0,
+          is_active: formData.is_active,
+        };
+
         const { error } = await updateRetailer(editingRetailer.id, retailerData);
         if (error) throw error;
         
@@ -134,12 +332,83 @@ export default function RetailersPage() {
           description: "Retailer updated successfully",
         });
       } else {
-        const { error } = await createRetailer(retailerData);
+        // Create new retailer with auth and documents
+        const { data: { session: adminSession } } = await supabase.auth.getSession();
+        let userId = null;
+
+        // Create auth user for retailer
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              full_name: formData.owner_name,
+              user_type: 'retailer',
+            },
+          },
+        });
+
+        if (authError) throw authError;
+        userId = authData.user?.id || null;
+
+        // Upload documents
+        const companyPanPath = companyPanCard ? await uploadDocument(companyPanCard, `retailers/${userId}/company_pan`) : null;
+        const ownerPanPath = ownerPanCard ? await uploadDocument(ownerPanCard, `retailers/${userId}/owner_pan`) : null;
+        const ownerAadharFrontPath = ownerAadharCardFront ? await uploadDocument(ownerAadharCardFront, `retailers/${userId}/owner_aadhar_front`) : null;
+        const ownerAadharBackPath = ownerAadharCardBack ? await uploadDocument(ownerAadharCardBack, `retailers/${userId}/owner_aadhar_back`) : null;
+        const gstCertPath = gstCertificate ? await uploadDocument(gstCertificate, `retailers/${userId}/gst_cert`) : null;
+        const udhyamPath = udhyamAadhar ? await uploadDocument(udhyamAadhar, `retailers/${userId}/udhyam`) : null;
+        const gumastaPath = gumastaCertificate ? await uploadDocument(gumastaCertificate, `retailers/${userId}/gumasta`) : null;
+        const aoaPath = aoaDocument ? await uploadDocument(aoaDocument, `retailers/${userId}/aoa`) : null;
+        const moaPath = moaDocument ? await uploadDocument(moaDocument, `retailers/${userId}/moa`) : null;
+        const coiPath = certificateOfIncorporation ? await uploadDocument(certificateOfIncorporation, `retailers/${userId}/coi`) : null;
+
+        // Create retailer record
+        const { error } = await supabase.from('retailers').insert([{
+          user_id: userId,
+          name: formData.name.trim(),
+          owner_name: formData.owner_name.trim(),
+          email: formData.email || null,
+          mobile_number: formData.mobile_number.trim(),
+          phone: formData.phone || null,
+          address: formData.address.trim() || null,
+          city: formData.city.trim() || null,
+          state: formData.state.trim() || null,
+          postal_code: formData.postal_code.trim() || null,
+          country: formData.country || null,
+          gst_number: formData.gst_number.trim() || null,
+          business_type: formData.business_type,
+          credit_limit: parseFloat(formData.credit_limit) || 0,
+          outstanding_balance: parseFloat(formData.outstanding_balance) || 0,
+          is_active: formData.is_active,
+          company_pan_card: companyPanPath,
+          gst_certificate: gstCertPath,
+          udhyam_aadhar: udhyamPath,
+          gumasta_certificate: gumastaPath,
+          aoa_document: aoaPath,
+          moa_document: moaPath,
+          certificate_of_incorporation: coiPath,
+          cin_number: formData.cin_number.trim() || null,
+          owner_pan_card: ownerPanPath,
+          owner_aadhar_card_front: ownerAadharFrontPath,
+          owner_aadhar_card_back: ownerAadharBackPath,
+          kyc_status: 'submitted',
+          kyc_submitted_at: new Date().toISOString(),
+        }]);
+
         if (error) throw error;
+
+        // Restore admin session
+        if (adminSession) {
+          await supabase.auth.setSession({
+            access_token: adminSession.access_token,
+            refresh_token: adminSession.refresh_token,
+          });
+        }
         
         toast({
           title: "Success",
-          description: "Retailer created successfully",
+          description: "Retailer created successfully with KYC documents",
         });
       }
 
@@ -162,13 +431,19 @@ export default function RetailersPage() {
     setEditingRetailer(retailer);
     setFormData({
       name: retailer.name,
+      owner_name: "",
       email: retailer.email || "",
+      password: "",
+      mobile_number: "",
       phone: retailer.phone || "",
       address: retailer.address || "",
       city: retailer.city || "",
       state: retailer.state || "",
       postal_code: retailer.postal_code || "",
       country: retailer.country || "India",
+      gst_number: "",
+      business_type: "proprietorship",
+      cin_number: "",
       tax_id: retailer.tax_id || "",
       gstin: retailer.gstin || "",
       credit_limit: retailer.credit_limit.toString(),
@@ -201,23 +476,50 @@ export default function RetailersPage() {
     }
   };
 
+  const handleFileSelect = (setter: (doc: DocumentUpload | null) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setter({
+        file,
+        name: file.name,
+        preview: URL.createObjectURL(file),
+      });
+    }
+  };
+
   const resetForm = () => {
     setEditingRetailer(null);
     setFormData({
       name: "",
+      owner_name: "",
       email: "",
+      password: "",
+      mobile_number: "",
       phone: "",
       address: "",
       city: "",
       state: "",
       postal_code: "",
       country: "India",
+      gst_number: "",
+      business_type: "proprietorship",
+      cin_number: "",
       tax_id: "",
       gstin: "",
       credit_limit: "0",
       outstanding_balance: "0",
       is_active: true,
     });
+    setCompanyPanCard(null);
+    setGstCertificate(null);
+    setUdhyamAadhar(null);
+    setGumastaCertificate(null);
+    setAoaDocument(null);
+    setMoaDocument(null);
+    setCertificateOfIncorporation(null);
+    setOwnerPanCard(null);
+    setOwnerAadharCardFront(null);
+    setOwnerAadharCardBack(null);
   };
 
   const filteredRetailers = retailers.filter((retailer) => {
@@ -419,7 +721,11 @@ export default function RetailersPage() {
                       : 0;
                     
                     return (
-                      <tr key={retailer.id} className="hover:bg-gray-50">
+                      <tr 
+                        key={retailer.id} 
+                        className="hover:bg-gray-50 cursor-pointer"
+                        onClick={() => router.push(`/retailers/${retailer.id}`)}
+                      >
                         <td className="px-6 py-4">
                           <div className="space-y-1">
                             <p className="font-medium text-gray-900">{retailer.name}</p>
@@ -490,14 +796,20 @@ export default function RetailersPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleEdit(retailer)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(retailer);
+                              }}
                             >
                               <Edit className="h-4 w-4 text-blue-600" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDelete(retailer.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(retailer.id);
+                              }}
                             >
                               <Trash2 className="h-4 w-4 text-red-600" />
                             </Button>
@@ -516,7 +828,7 @@ export default function RetailersPage() {
 
     {/* Retailer Form Sheet */}
     <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="sm:max-w-[540px] overflow-y-auto">
+        <SheetContent className="sm:max-w-[600px] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>{editingRetailer ? "Edit Retailer" : "Add Retailer"}</SheetTitle>
             <SheetDescription>
@@ -525,39 +837,110 @@ export default function RetailersPage() {
           </SheetHeader>
           
           <form onSubmit={handleSubmit} className="space-y-6 mt-6">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
-              <Input
-                id="name"
-                placeholder="Retailer name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+            {/* Basic Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Basic Information</h3>
+              
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="name">Business/Shop Name *</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="email@example.com"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  id="name"
+                  placeholder="Retailer business name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
                 />
               </div>
 
+              {!editingRetailer && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="owner_name">Owner Name *</Label>
+                    <Input
+                      id="owner_name"
+                      placeholder="Owner full name"
+                      value={formData.owner_name}
+                      onChange={(e) => setFormData({ ...formData, owner_name: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="mobile_number">Mobile Number *</Label>
+                    <Input
+                      id="mobile_number"
+                      placeholder="+91 98765 43210"
+                      value={formData.mobile_number}
+                      onChange={(e) => setFormData({ ...formData, mobile_number: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="email@example.com"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password *</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="Min 6 characters"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        required
+                        minLength={6}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500">Retailer account will be created. You will remain logged in as admin.</p>
+                </>
+              )}
+
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="business_type">Business Type</Label>
+                <Select
+                  value={formData.business_type}
+                  onValueChange={(value) => setFormData({ ...formData, business_type: value as BusinessType })}
+                  disabled={!!editingRetailer}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select business type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="proprietorship">Proprietorship</SelectItem>
+                      <SelectItem value="private_limited">Private Limited</SelectItem>
+                      <SelectItem value="llp">LLP</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="gst_number">GST Number</Label>
                 <Input
-                  id="phone"
-                  placeholder="+91 98765 43210"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  id="gst_number"
+                  placeholder="24AABCU9741H1ZS"
+                  value={formData.gst_number}
+                  onChange={(e) => setFormData({ ...formData, gst_number: e.target.value.toUpperCase() })}
                 />
               </div>
             </div>
+
+            {/* Address Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Address</h3>
 
             <div className="space-y-2">
               <Label htmlFor="address">Address</Label>
@@ -614,27 +997,125 @@ export default function RetailersPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="gstin">GSTIN</Label>
-                <Input
-                  id="gstin"
-                  placeholder="24AABCU9741H1ZS"
-                  value={formData.gstin}
-                  onChange={(e) => setFormData({ ...formData, gstin: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="tax_id">Tax ID</Label>
-                <Input
-                  id="tax_id"
-                  placeholder="Tax identification number"
-                  value={formData.tax_id}
-                  onChange={(e) => setFormData({ ...formData, tax_id: e.target.value })}
-                />
-              </div>
+              {(formData.business_type === 'private_limited' || formData.business_type === 'llp') && !editingRetailer && (
+                <div className="space-y-2">
+                  <Label htmlFor="cin_number">CIN Number</Label>
+                  <Input
+                    id="cin_number"
+                    placeholder="Corporate Identity Number"
+                    value={formData.cin_number}
+                    onChange={(e) => setFormData({ ...formData, cin_number: e.target.value.toUpperCase() })}
+                  />
+                </div>
+              )}
             </div>
+
+            {/* Document Uploads - Only for new retailers */}
+            {!editingRetailer && (
+              <>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Company Documents</h3>
+                  <p className="text-sm text-gray-500">Company PAN card is mandatory</p>
+                  
+                  <DocumentUploadField
+                    label="Company PAN Card"
+                    document={companyPanCard}
+                    onSelect={handleFileSelect(setCompanyPanCard)}
+                    onRemove={() => setCompanyPanCard(null)}
+                    required
+                  />
+                </div>
+
+                {formData.business_type === 'proprietorship' && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Proprietorship KYC Documents</h3>
+                    <p className="text-sm text-gray-500">Provide at least ONE of the following</p>
+                    
+                    <DocumentUploadField
+                      label="GST Certificate"
+                      document={gstCertificate}
+                      onSelect={handleFileSelect(setGstCertificate)}
+                      onRemove={() => setGstCertificate(null)}
+                    />
+                    
+                    <DocumentUploadField
+                      label="Udhyam Aadhar"
+                      document={udhyamAadhar}
+                      onSelect={handleFileSelect(setUdhyamAadhar)}
+                      onRemove={() => setUdhyamAadhar(null)}
+                    />
+                    
+                    <DocumentUploadField
+                      label="Gumasta Certificate"
+                      document={gumastaCertificate}
+                      onSelect={handleFileSelect(setGumastaCertificate)}
+                      onRemove={() => setGumastaCertificate(null)}
+                    />
+                  </div>
+                )}
+
+                {(formData.business_type === 'private_limited' || formData.business_type === 'llp') && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Company Registration Documents</h3>
+                    <p className="text-sm text-gray-500">Provide at least ONE of the following</p>
+                    
+                    <DocumentUploadField
+                      label="AOA (Articles of Association)"
+                      document={aoaDocument}
+                      onSelect={handleFileSelect(setAoaDocument)}
+                      onRemove={() => setAoaDocument(null)}
+                    />
+                    
+                    <DocumentUploadField
+                      label="MOA (Memorandum of Association)"
+                      document={moaDocument}
+                      onSelect={handleFileSelect(setMoaDocument)}
+                      onRemove={() => setMoaDocument(null)}
+                    />
+                    
+                    <DocumentUploadField
+                      label="Certificate of Incorporation"
+                      document={certificateOfIncorporation}
+                      onSelect={handleFileSelect(setCertificateOfIncorporation)}
+                      onRemove={() => setCertificateOfIncorporation(null)}
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Owner Documents</h3>
+                  <p className="text-sm text-gray-500">All documents are mandatory</p>
+                  
+                  <DocumentUploadField
+                    label="Owner PAN Card"
+                    document={ownerPanCard}
+                    onSelect={handleFileSelect(setOwnerPanCard)}
+                    onRemove={() => setOwnerPanCard(null)}
+                    required
+                  />
+                  
+                  <DocumentUploadField
+                    label="Owner Aadhar Card (Front)"
+                    document={ownerAadharCardFront}
+                    onSelect={handleFileSelect(setOwnerAadharCardFront)}
+                    onRemove={() => setOwnerAadharCardFront(null)}
+                    required
+                  />
+                  
+                  <DocumentUploadField
+                    label="Owner Aadhar Card (Back)"
+                    document={ownerAadharCardBack}
+                    onSelect={handleFileSelect(setOwnerAadharCardBack)}
+                    onRemove={() => setOwnerAadharCardBack(null)}
+                    required
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Financial Settings */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Financial Settings</h3>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -662,22 +1143,23 @@ export default function RetailersPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="is_active">Status</Label>
-              <Select
-                value={formData.is_active ? "active" : "inactive"}
-                onValueChange={(value) => setFormData({ ...formData, is_active: value === "active" })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Label htmlFor="is_active">Status</Label>
+                <Select
+                  value={formData.is_active ? "active" : "inactive"}
+                  onValueChange={(value) => setFormData({ ...formData, is_active: value === "active" })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <SheetFooter>
