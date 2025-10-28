@@ -105,27 +105,6 @@ export default function MorePage() {
               </p>
             </div>
 
-            {/* Profile Card */}
-            <Card className="border-none shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50">
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold">
-                    {user?.email?.substring(0, 2).toUpperCase() || 'U'}
-                  </div>
-                  <div>
-                    <CardTitle className="text-2xl">
-                      {user?.user_metadata?.full_name || user?.email || 'User'}
-                    </CardTitle>
-                    <CardDescription className="text-base mt-1">
-                      {user?.email}
-                    </CardDescription>
-                    <Badge className="mt-2 bg-blue-100 text-blue-700 hover:bg-blue-100">
-                      Administrator
-                    </Badge>
-                  </div>
-                </div>
-              </CardHeader>
-            </Card>
 
             {/* Menu Items - Grouped by Category */}
             <div className="space-y-8">
