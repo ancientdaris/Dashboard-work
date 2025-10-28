@@ -53,7 +53,7 @@ export default function ComingSoon({ title, description, icon }: ComingSoonProps
                     Coming Soon
                   </h3>
                   <p className="text-gray-600">
-                    This feature is currently under development. We're working hard to bring it to you soon!
+                    This feature is currently under development. We&apos;re working hard to bring it to you soon!
                   </p>
                 </div>
                 <div className="pt-4">
