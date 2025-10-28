@@ -33,7 +33,8 @@ import {
   Warehouse,
   DollarSign,
   Link2,
-  Users
+  Users,
+  MoreHorizontal
 } from "lucide-react";
 
 const sidebarItems = [
@@ -113,6 +114,11 @@ const sidebarItems = [
     title: "Settings",
     href: "/settings",
     icon: Settings,
+  },
+  {
+    title: "More",
+    href: "/more",
+    icon: MoreHorizontal,
   },
 ];
 
