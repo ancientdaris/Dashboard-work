@@ -62,14 +62,21 @@ export default function LeaveBalancesPage() {
           casual_leave,
           sick_leave,
           earned_leave,
-          user:profiles(full_name)
+          user:profiles!inner(full_name)
         `)
         .eq('is_active', true)
         .order('employee_id');
 
       if (error) throw error;
-      setStaff(data || []);
-      setFilteredStaff(data || []);
+      
+      // Transform data to match interface
+      const transformedData = (data || []).map((item: any) => ({
+        ...item,
+        user: Array.isArray(item.user) ? item.user[0] : item.user
+      }));
+      
+      setStaff(transformedData);
+      setFilteredStaff(transformedData);
     } catch (error) {
       console.error('Error fetching leave balances:', error);
       toast({

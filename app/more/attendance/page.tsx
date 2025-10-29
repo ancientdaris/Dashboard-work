@@ -175,7 +175,7 @@ export default function AttendancePage() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold text-blue-600">{stats.attendanceRate.toFixed(1)}%</div>
-                      <p className="text-xs text-muted-foreground mt-1">Today's rate</p>
+                      <p className="text-xs text-muted-foreground mt-1">Today&apos;s rate</p>
                     </CardContent>
                   </Card>
                 </div>

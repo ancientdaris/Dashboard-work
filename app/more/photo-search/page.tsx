@@ -259,19 +259,7 @@ export default function PhotoSearchPage() {
               <div className="flex gap-3">
                 <span className="text-sm font-bold flex-shrink-0">1.</span>
                 <p className="text-sm text-muted-foreground">
-                  Take a photo or upload an image of the product you're looking for
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <span className="text-sm font-bold flex-shrink-0">2.</span>
-                <p className="text-sm text-muted-foreground">
-                  AI analyzes the image to identify key visual features
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <span className="text-sm font-bold flex-shrink-0">3.</span>
-                <p className="text-sm text-muted-foreground">
-                  Matches are ranked by similarity percentage
+                  Take a photo or upload an image of the product you&apos;re looking for
                 </p>
               </div>
               <div className="flex gap-3">
@@ -296,7 +284,7 @@ export default function PhotoSearchPage() {
           <CardContent className="pt-6">
             <h3 className="text-sm font-semibold mb-3">Perfect For</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>• Quickly finding products when you don't know the name</li>
+              <li>• Quickly finding products when you don&apos;t know the name</li>
               <li>• Matching products from competitor catalogs</li>
               <li>• Identifying products from customer photos</li>
               <li>• Discovering similar or alternative products</li>

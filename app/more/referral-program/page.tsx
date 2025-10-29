@@ -71,14 +71,14 @@ export default function ReferralProgramPage() {
       }
 
       // Get my referral code
-      let { data: code, error: codeError } = await supabase
+      let { data: code } = await supabase
         .from('referral_codes')
         .select('*')
         .eq('referrer_id', user.id)
         .eq('is_active', true)
         .single();
 
-      if (codeError && codeError.code === 'PGRST116') {
+      if (!code) {
         // No code exists, create one
         const newCode = `REF${user.id.substring(0, 8).toUpperCase()}`;
         const { data: created } = await supabase
