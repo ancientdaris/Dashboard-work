@@ -28,6 +28,7 @@ import { Sidebar } from '@/components/layout/sidebar';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import Link from 'next/link';
 
 interface AnalyticsData {
   totalRevenue: number;
@@ -519,70 +520,76 @@ export default function AnalyticsPage() {
                   
                   <div className="grid gap-4 md:grid-cols-3">
                     {/* Sales Analytics */}
-                    <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 flex-1">
-                            <div className="p-2 bg-green-100 rounded-lg">
-                              <TrendingUp className="h-6 w-6 text-green-600" />
+                    <Link href="/more/analytics/sales-analytics">
+                      <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className="p-2 bg-green-100 rounded-lg">
+                                <TrendingUp className="h-6 w-6 text-green-600" />
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-base text-gray-900">
+                                  Sales Analytics
+                                </h3>
+                                <p className="text-xs text-muted-foreground">
+                                  Daily, weekly, and monthly trends
+                                </p>
+                              </div>
                             </div>
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-base text-gray-900">
-                                Sales Analytics
-                              </h3>
-                              <p className="text-xs text-muted-foreground">
-                                Daily, weekly, and monthly trends
-                              </p>
-                            </div>
+                            <ChevronRight className="h-5 w-5 text-gray-400" />
                           </div>
-                          <ChevronRight className="h-5 w-5 text-gray-400" />
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </Link>
 
                     {/* Footfall Analytics */}
-                    <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 flex-1">
-                            <div className="p-2 bg-blue-100 rounded-lg">
-                              <Eye className="h-6 w-6 text-blue-600" />
+                    <Link href="/more/analytics/footfall-analytics">
+                      <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className="p-2 bg-blue-100 rounded-lg">
+                                <Eye className="h-6 w-6 text-blue-600" />
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-base text-gray-900">
+                                  Footfall Analytics
+                                </h3>
+                                <p className="text-xs text-muted-foreground">
+                                  Store visitor insights
+                                </p>
+                              </div>
                             </div>
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-base text-gray-900">
-                                Footfall Analytics
-                              </h3>
-                              <p className="text-xs text-muted-foreground">
-                                Store visitor insights
-                              </p>
-                            </div>
+                            <ChevronRight className="h-5 w-5 text-gray-400" />
                           </div>
-                          <ChevronRight className="h-5 w-5 text-gray-400" />
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </Link>
 
                     {/* Retailer Rankings */}
-                    <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 flex-1">
-                            <div className="p-2 bg-purple-100 rounded-lg">
-                              <Activity className="h-6 w-6 text-purple-600" />
+                    <Link href="/more/analytics/retailer-rankings">
+                      <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className="p-2 bg-purple-100 rounded-lg">
+                                <Activity className="h-6 w-6 text-purple-600" />
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-base text-gray-900">
+                                  Retailer Rankings
+                                </h3>
+                                <p className="text-xs text-muted-foreground">
+                                  Top performing retailers
+                                </p>
+                              </div>
                             </div>
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-base text-gray-900">
-                                Retailer Rankings
-                              </h3>
-                              <p className="text-xs text-muted-foreground">
-                                Top performing retailers
-                              </p>
-                            </div>
+                            <ChevronRight className="h-5 w-5 text-gray-400" />
                           </div>
-                          <ChevronRight className="h-5 w-5 text-gray-400" />
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </Link>
                   </div>
                 </div>
               </div>
