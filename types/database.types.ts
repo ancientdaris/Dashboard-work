@@ -66,6 +66,11 @@ export type Database = {
         Insert: Omit<ActivityLog, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<ActivityLog, 'id' | 'created_at' | 'updated_at'>>;
       };
+      barcodes: {
+        Row: Barcode;
+        Insert: Omit<Barcode, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<Barcode, 'id' | 'created_at' | 'updated_at'>>;
+      };
     };
     Views: {
       [_ in never]: never;
@@ -283,4 +288,16 @@ export interface ActivityLog extends BaseEntity {
   changed_from: Record<string, unknown> | null;
   changed_to: Record<string, unknown> | null;
   user?: Profile;
+}
+
+export interface Barcode extends BaseEntity {
+  barcode_type: 'barcode' | 'qrcode';
+  barcode_data: string;
+  product_id: string | null;
+  product_name: string;
+  price: string | null;
+  sku: string;
+  image_url: string | null;
+  created_by: string | null;
+  product?: Product;
 }
