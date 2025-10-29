@@ -7,8 +7,8 @@
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
-osasnative-main
 !.yarn/releases
+osasnative-main
 !.yarn/versions
 
 # testing

@@ -1,509 +1,515 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Truck, RefreshCw, Package, MapPin, Calendar } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { 
-  RefreshCw, 
-  Bell,
-  Edit,
-  Printer,
-  FileDown,
-  RotateCw,
-  Package,
-  Truck,
-  CheckCircle2,
-  Clock,
-  MapPin,
-  Search,
-  Calendar,
-  TrendingUp,
-  AlertCircle,
-  BarChart3
-} from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sidebar } from "@/components/layout/sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+
+interface Delivery {
+  id: string;
+  delivery_number: string;
+  carrier: string | null;
+  tracking_number: string | null;
+  status: string;
+  recipient_name: string;
+  delivery_address: string;
+  scheduled_date: string | null;
+  created_at: string;
+  order_id: string | null;
+  orders?: {
+    order_number: string;
+  };
+}
+
+interface Order {
+  id: string;
+  order_number: string;
+  retailers?: {
+    name: string;
+    phone: string | null;
+    address: string | null;
+    city: string | null;
+    state: string | null;
+    postal_code: string | null;
+  };
+}
 
 export default function DeliveriesPage() {
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+  const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
 
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 1000);
+  // Create Delivery Form
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState("");
+  const [carrier, setCarrier] = useState("");
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [scheduledDate, setScheduledDate] = useState(new Date().toISOString().split('T')[0]);
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientPhone, setRecipientPhone] = useState("");
+  const [notes, setNotes] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  // Update Status Form
+  const [newStatus, setNewStatus] = useState("");
+  const [updating, setUpdating] = useState(false);
+
+  const { toast } = useToast();
+  const supabase = createClient();
+
+  const fetchDeliveries = async () => {
+    try {
+      setRefreshing(true);
+      const { data, error } = await supabase
+        .from("deliveries")
+        .select("*, orders (*)")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setDeliveries((data as Delivery[]) || []);
+    } catch (error: any) {
+      console.error("Error fetching deliveries:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch deliveries",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const fetchOrders = async () => {
+    const { data } = await supabase
+      .from("orders")
+      .select("*, retailers(*)")
+      .in("status", ["confirmed", "processing", "shipped"])
+      .order("created_at", { ascending: false });
+    if (data) setOrders(data as Order[]);
+  };
+
+  const loadOrderData = async () => {
+    const { data } = await supabase
+      .from("orders")
+      .select("*, retailers(*)")
+      .eq("id", selectedOrder)
+      .single();
+    if (data && data.retailers) {
+      setRecipientName(data.retailers.name);
+      setRecipientPhone(data.retailers.phone || "");
+      setDeliveryAddress(
+        `${data.retailers.address || ""}, ${data.retailers.city || ""}, ${data.retailers.state || ""} ${data.retailers.postal_code || ""}`
+      );
+    }
+  };
+
+  const handleCreateDelivery = async () => {
+    if (!selectedOrder || !recipientName) {
+      toast({
+        title: "Error",
+        description: "Order and recipient name are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const deliveryNumber = `DEL-${Date.now()}`;
+      const { error } = await supabase.from("deliveries").insert({
+        order_id: selectedOrder,
+        delivery_number: deliveryNumber,
+        status: "pending",
+        carrier: carrier || null,
+        tracking_number: trackingNumber || null,
+        scheduled_date: scheduledDate,
+        delivery_address: deliveryAddress || null,
+        recipient_name: recipientName,
+        recipient_phone: recipientPhone || null,
+        notes: notes || null,
+      });
+
+      if (error) throw error;
+
+      // Update order status to shipped
+      await supabase.from("orders").update({ status: "shipped" }).eq("id", selectedOrder);
+
+      toast({
+        title: "Success",
+        description: "Delivery created successfully",
+      });
+      
+      setCreateDialogOpen(false);
+      resetCreateForm();
+      fetchDeliveries();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create delivery",
+        variant: "destructive",
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleUpdateStatus = async () => {
+    if (!selectedDelivery) return;
+
+    setUpdating(true);
+    try {
+      const updates: any = { status: newStatus };
+
+      if (newStatus === "delivered") {
+        updates.delivered_date = new Date().toISOString();
+        // Update order status to delivered
+        if (selectedDelivery.order_id) {
+          await supabase
+            .from("orders")
+            .update({ status: "delivered" })
+            .eq("id", selectedDelivery.order_id);
+        }
+      }
+
+      const { error } = await supabase
+        .from("deliveries")
+        .update(updates)
+        .eq("id", selectedDelivery.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Delivery status updated successfully",
+      });
+      
+      setUpdateDialogOpen(false);
+      fetchDeliveries();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update status",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const resetCreateForm = () => {
+    setSelectedOrder("");
+    setCarrier("");
+    setTrackingNumber("");
+    setScheduledDate(new Date().toISOString().split('T')[0]);
+    setDeliveryAddress("");
+    setRecipientName("");
+    setRecipientPhone("");
+    setNotes("");
+  };
+
+  const openUpdateDialog = (delivery: Delivery) => {
+    setSelectedDelivery(delivery);
+    setNewStatus(delivery.status);
+    setUpdateDialogOpen(true);
+  };
+
+  useEffect(() => {
+    fetchDeliveries();
+    fetchOrders();
+  }, []);
+
+  useEffect(() => {
+    if (selectedOrder) loadOrderData();
+  }, [selectedOrder]);
+
+  const getStatusVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
+    if (status === "delivered") return "default";
+    if (status === "failed") return "destructive";
+    return "secondary";
   };
 
   return (
     <ProtectedRoute>
       <div className="flex h-screen">
         <Sidebar />
-      <div className="flex-1 space-y-6 p-8 overflow-auto bg-gray-50">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Deliveries & Shipment Tracking</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage and track all your deliveries in real-time
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Badge variant="outline" className="flex items-center gap-2 px-3 py-1.5 bg-white border-gray-200">
-              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-sm font-medium text-gray-700">Live Updates</span>
-            </Badge>
-            <Button variant="outline" className="flex items-center gap-2">
-              <Bell className="h-4 w-4" />
-              <span>Notifications</span>
-            </Button>
-            <Button 
-              className="flex items-center gap-2"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="bg-white border-b border-gray-200 w-full justify-start rounded-none h-auto p-0">
-            <TabsTrigger 
-              value="overview" 
-              className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none px-6 py-3"
-            >
-              Overview
-            </TabsTrigger>
-            <TabsTrigger 
-              value="all-deliveries"
-              className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none px-6 py-3"
-            >
-              All Deliveries
-            </TabsTrigger>
-            <TabsTrigger 
-              value="track-delivery"
-              className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none px-6 py-3"
-            >
-              Track Delivery
-            </TabsTrigger>
-            <TabsTrigger 
-              value="analytics"
-              className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none px-6 py-3"
-            >
-              Analytics
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="mt-6 space-y-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { label: 'Total Deliveries', value: '248', change: '↑ 12%', icon: Package, bg: 'bg-blue-100', text: 'text-blue-600', desc: 'This month' },
-                { label: 'In Transit', value: '42', change: 'Active', icon: Truck, bg: 'bg-orange-100', text: 'text-orange-600', desc: 'Currently shipping' },
-                { label: 'Delivered', value: '198', change: '↑ 8%', icon: CheckCircle2, bg: 'bg-green-100', text: 'text-green-600', desc: 'Successfully completed' },
-                { label: 'Pending', value: '8', change: 'Awaiting', icon: Clock, bg: 'bg-yellow-100', text: 'text-yellow-600', desc: 'Ready to ship' },
-              ].map((stat) => (
-                <Card key={stat.label} className="transition-all hover:shadow-md">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardContent className="p-0">
-                      <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                      <div className="flex items-baseline gap-2">
-                        <h3 className="text-2xl font-bold mt-1">{stat.value}</h3>
-                        <span className="text-sm font-medium text-green-600">{stat.change}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">{stat.desc}</p>
-                    </CardContent>
-                    <div className={`rounded-lg ${stat.bg} p-2.5`}>
-                      <stat.icon className={`h-5 w-5 ${stat.text}`} />
-                    </div>
-                  </CardHeader>
-                </Card>
-              ))}
-            </div>
-
-            {/* Recent Deliveries */}
-            <Card className="transition-all hover:shadow-md">
+        <div className="flex-1 overflow-auto bg-gray-50 p-6">
+          <div className="max-w-6xl mx-auto space-y-6">
+            {/* Header */}
+            <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Recent Deliveries</h2>
-                    <p className="text-sm text-muted-foreground">Latest shipment updates</p>
-                  </div>
-                  <Button variant="outline" size="sm">View All</Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[
-                    { id: 'DEL-001', customer: 'Raj Traders', status: 'Delivered', date: '2 hours ago' },
-                    { id: 'DEL-002', customer: 'Mumbai Retail Store', status: 'In Transit', date: '5 hours ago' },
-                    { id: 'DEL-003', customer: 'Delhi Wholesale', status: 'Out for Delivery', date: '1 day ago' },
-                    { id: 'DEL-004', customer: 'Pune Distributors', status: 'Pending', date: '2 days ago' },
-                  ].map((delivery) => (
-                    <div key={delivery.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="rounded-lg bg-gray-100 p-2">
-                          <Package className="h-4 w-4 text-gray-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{delivery.id}</p>
-                          <p className="text-sm text-muted-foreground">{delivery.customer}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <Badge variant="outline">{delivery.status}</Badge>
-                        <span className="text-sm text-muted-foreground">{delivery.date}</span>
-                      </div>
+                    <div className="flex items-center gap-3">
+                      <Truck className="h-6 w-6" />
+                      <CardTitle className="text-2xl">Deliveries</CardTitle>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Actions */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Button 
-                  variant="outline" 
-                  className="flex items-center justify-start gap-3 h-auto py-4 px-4 bg-white hover:bg-gray-50 border-gray-200"
-                >
-                  <Edit className="h-5 w-5 text-gray-600" />
-                  <span className="text-sm font-medium text-gray-700">Bulk Update Status</span>
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  className="flex items-center justify-start gap-3 h-auto py-4 px-4 bg-white hover:bg-gray-50 border-gray-200"
-                >
-                  <Printer className="h-5 w-5 text-gray-600" />
-                  <span className="text-sm font-medium text-gray-700">Print Shipping Labels</span>
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  className="flex items-center justify-start gap-3 h-auto py-4 px-4 bg-white hover:bg-gray-50 border-gray-200"
-                >
-                  <FileDown className="h-5 w-5 text-gray-600" />
-                  <span className="text-sm font-medium text-gray-700">Export Delivery Report</span>
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  className="flex items-center justify-start gap-3 h-auto py-4 px-4 bg-white hover:bg-gray-50 border-gray-200"
-                >
-                  <RotateCw className="h-5 w-5 text-gray-600" />
-                  <span className="text-sm font-medium text-gray-700">Sync Tracking Status</span>
-                </Button>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="all-deliveries" className="mt-6 space-y-4">
-            {/* Search and Filters */}
-            <Card className="transition-all hover:shadow-md">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input placeholder="Search by delivery ID, customer name..." className="pl-10" />
+                    <CardDescription>
+                      Manage and track all your deliveries
+                    </CardDescription>
                   </div>
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Filter by Date
-                  </Button>
-                  <Button variant="outline">All Status</Button>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="flex items-center gap-2">
+                    <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="default" size="sm">
+                          + Create Delivery
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Create Delivery</DialogTitle>
+                          <DialogDescription>
+                            Create a new delivery for an order
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="order">Order *</Label>
+                            <Select value={selectedOrder} onValueChange={setSelectedOrder}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select order" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {orders.map((order) => (
+                                  <SelectItem key={order.id} value={order.id}>
+                                    {order.order_number} - {order.retailers?.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
 
-            {/* Deliveries List */}
-            <Card className="transition-all hover:shadow-md">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">All Deliveries</h2>
-                    <p className="text-sm text-muted-foreground">Manage all your shipments</p>
-                  </div>
-                  <Button className="flex items-center gap-2">
-                    <Package className="h-4 w-4" />
-                    Create Delivery
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {[
-                    { id: 'DEL-2024-001', customer: 'Raj Traders', address: 'Mumbai, Maharashtra', carrier: 'Blue Dart', tracking: 'BD123456789', status: 'Delivered', date: 'Jan 24, 2024' },
-                    { id: 'DEL-2024-002', customer: 'Mumbai Retail Store', address: 'Pune, Maharashtra', carrier: 'DTDC', tracking: 'DT987654321', status: 'In Transit', date: 'Jan 25, 2024' },
-                    { id: 'DEL-2024-003', customer: 'Delhi Wholesale', address: 'Delhi, NCR', carrier: 'Delhivery', tracking: 'DV456789123', status: 'Out for Delivery', date: 'Jan 25, 2024' },
-                    { id: 'DEL-2024-004', customer: 'Pune Distributors', address: 'Pune, Maharashtra', carrier: 'FedEx', tracking: 'FX789123456', status: 'Pending', date: 'Jan 26, 2024' },
-                  ].map((delivery) => (
-                    <div key={delivery.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-center gap-3">
-                            <p className="font-semibold text-sm">{delivery.id}</p>
-                            <Badge variant="outline">{delivery.status}</Badge>
+                          <div className="space-y-2">
+                            <Label htmlFor="carrier">Carrier</Label>
+                            <Input
+                              id="carrier"
+                              placeholder="e.g., FedEx, UPS, DHL"
+                              value={carrier}
+                              onChange={(e) => setCarrier(e.target.value)}
+                            />
                           </div>
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <p className="text-muted-foreground">Customer</p>
-                              <p className="font-medium">{delivery.customer}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Delivery Address</p>
-                              <p className="font-medium flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {delivery.address}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Carrier</p>
-                              <p className="font-medium">{delivery.carrier}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Tracking Number</p>
-                              <p className="font-medium text-blue-600">{delivery.tracking}</p>
-                            </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="tracking">Tracking Number</Label>
+                            <Input
+                              id="tracking"
+                              placeholder="Tracking number"
+                              value={trackingNumber}
+                              onChange={(e) => setTrackingNumber(e.target.value)}
+                            />
                           </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="date">Scheduled Date</Label>
+                            <Input
+                              id="date"
+                              type="date"
+                              value={scheduledDate}
+                              onChange={(e) => setScheduledDate(e.target.value)}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="recipient">Recipient Name *</Label>
+                            <Input
+                              id="recipient"
+                              placeholder="Recipient name"
+                              value={recipientName}
+                              onChange={(e) => setRecipientName(e.target.value)}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="phone">Recipient Phone</Label>
+                            <Input
+                              id="phone"
+                              placeholder="Phone number"
+                              value={recipientPhone}
+                              onChange={(e) => setRecipientPhone(e.target.value)}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="address">Delivery Address</Label>
+                            <Textarea
+                              id="address"
+                              placeholder="Full delivery address"
+                              value={deliveryAddress}
+                              onChange={(e) => setDeliveryAddress(e.target.value)}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="notes">Notes</Label>
+                            <Textarea
+                              id="notes"
+                              placeholder="Delivery instructions..."
+                              value={notes}
+                              onChange={(e) => setNotes(e.target.value)}
+                            />
+                          </div>
+
+                          <Button
+                            className="w-full"
+                            onClick={handleCreateDelivery}
+                            disabled={creating}
+                          >
+                            {creating ? "Creating..." : "Create Delivery"}
+                          </Button>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <span className="text-sm text-muted-foreground">{delivery.date}</span>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm">Track</Button>
-                            <Button variant="outline" size="sm"><Edit className="h-3 w-3" /></Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="track-delivery" className="mt-6 space-y-4">
-            {/* Tracking Search */}
-            <Card className="transition-all hover:shadow-md">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Track Your Delivery</h2>
-                    <p className="text-sm text-muted-foreground">Enter tracking number or delivery ID</p>
-                  </div>
-                  <div className="flex gap-3">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input placeholder="Enter tracking number (e.g., BD123456789)" className="pl-10" />
-                    </div>
-                    <Button className="flex items-center gap-2">
-                      <Search className="h-4 w-4" />
-                      Track
+                      </DialogContent>
+                    </Dialog>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={fetchDeliveries}
+                      disabled={refreshing}
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                      Refresh
                     </Button>
                   </div>
                 </div>
-              </CardContent>
+              </CardHeader>
             </Card>
 
-            {/* Tracking Timeline */}
-            <Card className="transition-all hover:shadow-md">
+            {/* Deliveries List */}
+            <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Delivery Timeline</h2>
-                    <p className="text-sm text-muted-foreground">Tracking ID: BD123456789</p>
-                  </div>
-                  <Badge className="bg-green-100 text-green-700 border-green-200">Out for Delivery</Badge>
-                </div>
+                <CardTitle>All Deliveries ({deliveries.length})</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  {[
-                    { status: 'Out for Delivery', location: 'Mumbai Local Hub', time: 'Today, 10:30 AM', active: true, completed: false },
-                    { status: 'In Transit', location: 'Mumbai Sorting Center', time: 'Today, 8:00 AM', active: false, completed: true },
-                    { status: 'Dispatched', location: 'Pune Distribution Center', time: 'Yesterday, 6:45 PM', active: false, completed: true },
-                    { status: 'Picked Up', location: 'Warehouse - Pune', time: 'Yesterday, 2:30 PM', active: false, completed: true },
-                    { status: 'Order Placed', location: 'Online', time: 'Jan 24, 11:00 AM', active: false, completed: true },
-                  ].map((step, index) => (
-                    <div key={index} className="flex gap-4">
-                      <div className="flex flex-col items-center">
-                        <div className={`rounded-full p-2 ${step.active ? 'bg-blue-100' : step.completed ? 'bg-green-100' : 'bg-gray-100'}`}>
-                          {step.completed ? (
-                            <CheckCircle2 className="h-5 w-5 text-green-600" />
-                          ) : step.active ? (
-                            <Truck className="h-5 w-5 text-blue-600" />
-                          ) : (
-                            <Clock className="h-5 w-5 text-gray-400" />
-                          )}
-                        </div>
-                        {index < 4 && (
-                          <div className={`w-0.5 h-12 ${step.completed ? 'bg-green-200' : 'bg-gray-200'}`} />
-                        )}
-                      </div>
-                      <div className="flex-1 pb-6">
-                        <p className={`font-semibold text-sm ${step.active ? 'text-blue-600' : step.completed ? 'text-gray-900' : 'text-gray-400'}`}>
-                          {step.status}
-                        </p>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                          <MapPin className="h-3 w-3" />
-                          {step.location}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">{step.time}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {loading ? (
+                  <div className="text-center py-8">
+                    <RefreshCw className="h-8 w-8 animate-spin mx-auto text-gray-400" />
+                    <p className="text-sm text-muted-foreground mt-2">Loading deliveries...</p>
+                  </div>
+                ) : deliveries.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                    <p className="text-muted-foreground">No deliveries found</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {deliveries.map((delivery) => (
+                      <Card 
+                        key={delivery.id} 
+                        className="hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => openUpdateDialog(delivery)}
+                      >
+                        <CardContent className="pt-6">
+                          <div className="space-y-4">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <h3 className="font-bold text-lg">{delivery.delivery_number}</h3>
+                                {delivery.carrier && (
+                                  <p className="text-sm text-muted-foreground">
+                                    Carrier: {delivery.carrier}
+                                  </p>
+                                )}
+                                {delivery.tracking_number && (
+                                  <p className="text-sm text-muted-foreground">
+                                    Tracking: {delivery.tracking_number}
+                                  </p>
+                                )}
+                              </div>
+                              <Badge variant={getStatusVariant(delivery.status)}>
+                                {delivery.status}
+                              </Badge>
+                            </div>
+
+                            <Separator />
+
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                                  <p className="text-sm font-medium">{delivery.recipient_name}</p>
+                                </div>
+                                <p className="text-xs text-muted-foreground ml-6">
+                                  {delivery.delivery_address}
+                                </p>
+                              </div>
+                              {delivery.scheduled_date && (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Calendar className="h-4 w-4" />
+                                  <span>
+                                    {new Date(delivery.scheduled_date).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* Delivery Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="transition-all hover:shadow-md">
-                <CardHeader>
-                  <h3 className="font-semibold text-sm">Delivery Information</h3>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Estimated Delivery</p>
-                    <p className="font-semibold">Today, 6:00 PM</p>
+            {/* Update Status Dialog */}
+            <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Update Delivery Status</DialogTitle>
+                  <DialogDescription>
+                    {selectedDelivery?.delivery_number}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Current Status</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedDelivery?.status}
+                    </p>
                   </div>
-                  <div>
-                    <p className="text-muted-foreground">Carrier</p>
-                    <p className="font-semibold">Blue Dart Express</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Delivery Address</p>
-                    <p className="font-semibold">Raj Traders, Shop 45, Mumbai - 400001</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Contact</p>
-                    <p className="font-semibold">+91 98765 43210</p>
-                  </div>
-                </CardContent>
-              </Card>
 
-              <Card className="transition-all hover:shadow-md">
-                <CardHeader>
-                  <h3 className="font-semibold text-sm">Package Details</h3>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Weight</p>
-                    <p className="font-semibold">5.2 kg</p>
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Update Status</Label>
+                    <Select value={newStatus} onValueChange={setNewStatus}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="in_transit">In Transit</SelectItem>
+                        <SelectItem value="delivered">Delivered</SelectItem>
+                        <SelectItem value="failed">Failed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div>
-                    <p className="text-muted-foreground">Dimensions</p>
-                    <p className="font-semibold">40 × 30 × 20 cm</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Items</p>
-                    <p className="font-semibold">12 Products</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
 
-          <TabsContent value="analytics" className="mt-6 space-y-4">
-            {/* Performance Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { label: 'On-Time Delivery Rate', value: '94.5%', change: '↑ 2.3%', icon: TrendingUp, bg: 'bg-green-100', text: 'text-green-600', desc: 'Last 30 days' },
-                { label: 'Average Delivery Time', value: '2.4 days', change: 'Improved by 0.3 days', icon: Clock, bg: 'bg-blue-100', text: 'text-blue-600', desc: 'Average time' },
-                { label: 'Failed Deliveries', value: '3', change: '1.2%', icon: AlertCircle, bg: 'bg-red-100', text: 'text-red-600', desc: 'Requires attention' },
-              ].map((metric) => (
-                <Card key={metric.label} className="transition-all hover:shadow-md">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardContent className="p-0">
-                      <p className="text-sm font-medium text-muted-foreground">{metric.label}</p>
-                      <div className="flex items-baseline gap-2">
-                        <h3 className="text-3xl font-bold mt-1">{metric.value}</h3>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">{metric.desc}</p>
-                    </CardContent>
-                    <div className={`rounded-lg ${metric.bg} p-2.5`}>
-                      <metric.icon className={`h-5 w-5 ${metric.text}`} />
-                    </div>
-                  </CardHeader>
-                </Card>
-              ))}
-            </div>
-
-            {/* Delivery Status Distribution */}
-            <Card className="transition-all hover:shadow-md">
-              <CardHeader>
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Delivery Status Distribution</h2>
-                  <p className="text-sm text-muted-foreground">Current month breakdown</p>
+                  <Button
+                    className="w-full"
+                    onClick={handleUpdateStatus}
+                    disabled={updating || newStatus === selectedDelivery?.status}
+                  >
+                    {updating ? "Updating..." : "Update Status"}
+                  </Button>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[
-                    { status: 'Delivered', count: 198, percentage: 79.8, color: 'bg-green-500' },
-                    { status: 'In Transit', count: 42, percentage: 16.9, color: 'bg-blue-500' },
-                    { status: 'Pending', count: 8, percentage: 3.2, color: 'bg-yellow-500' },
-                  ].map((item) => (
-                    <div key={item.status} className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{item.status}</span>
-                        <span className="text-muted-foreground">{item.count} ({item.percentage}%)</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className={`${item.color} h-2 rounded-full transition-all`}
-                          style={{ width: `${item.percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Top Carriers */}
-            <Card className="transition-all hover:shadow-md">
-              <CardHeader>
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Top Carriers Performance</h2>
-                  <p className="text-sm text-muted-foreground">Based on delivery success rate</p>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[
-                    { name: 'Blue Dart', deliveries: 98, onTime: 96, rate: 97.9 },
-                    { name: 'DTDC', deliveries: 72, onTime: 68, rate: 94.4 },
-                    { name: 'Delhivery', deliveries: 54, onTime: 50, rate: 92.6 },
-                    { name: 'FedEx', deliveries: 24, onTime: 22, rate: 91.7 },
-                  ].map((carrier) => (
-                    <div key={carrier.name} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="rounded-lg bg-blue-100 p-2">
-                          <Truck className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm">{carrier.name}</p>
-                          <p className="text-xs text-muted-foreground">{carrier.deliveries} deliveries</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-sm text-green-600">{carrier.rate}%</p>
-                        <p className="text-xs text-muted-foreground">{carrier.onTime}/{carrier.deliveries} on-time</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
       </div>
-    </div>
     </ProtectedRoute>
   );
 }
