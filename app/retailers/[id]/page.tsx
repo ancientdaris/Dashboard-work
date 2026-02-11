@@ -6,24 +6,34 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { 
-  FileCheck, 
-  X, 
-  Clock, 
-  ArrowLeft, 
-  Edit, 
-  Building2, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  CreditCard, 
+import {
+  FileCheck,
+  X,
+  Clock,
+  ArrowLeft,
+  Edit,
+  Building2,
+  Phone,
+  Mail,
+  MapPin,
+  CreditCard,
   Calendar,
   User,
   FileText,
   CheckCircle2,
   AlertCircle,
-  Loader2
+  Loader2,
+  Package,
+  Star
 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Sidebar } from "@/components/layout/sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { createClient } from "@/lib/supabase/client";
@@ -69,9 +79,12 @@ export default function RetailerDetailPage() {
   
   const [retailer, setRetailer] = useState<Retailer | null>(null);
   const [loading, setLoading] = useState(true);
+  const [retailerProducts, setRetailerProducts] = useState<any[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
 
   useEffect(() => {
     fetchRetailerDetails();
+    fetchRetailerProducts();
   }, [retailerId]);
 
   const fetchRetailerDetails = async () => {
@@ -89,6 +102,30 @@ export default function RetailerDetailPage() {
       console.error('Error fetching retailer details:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRetailerProducts = async () => {
+    try {
+      setProductsLoading(true);
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('retailer_products')
+        .select(`
+          *,
+          product:products!retailer_products_product_id_fkey (
+            id, name, sku, brand, category, unit_price, cost_price, image_url, is_active, tax_rate
+          )
+        `)
+        .eq('retailer_id', retailerId)
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+      setRetailerProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching retailer products:', error);
+    } finally {
+      setProductsLoading(false);
     }
   };
 
@@ -261,7 +298,11 @@ export default function RetailerDetailPage() {
 
             {/* Tabbed Content */}
             <Tabs defaultValue="business" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 lg:w-[600px]">
+              <TabsList className="grid w-full grid-cols-4 lg:w-[800px]">
+                <TabsTrigger value="products">
+                  <Package className="h-4 w-4 mr-2" />
+                  Products
+                </TabsTrigger>
                 <TabsTrigger value="business">
                   <Building2 className="h-4 w-4 mr-2" />
                   Business Info
@@ -275,6 +316,85 @@ export default function RetailerDetailPage() {
                   Details
                 </TabsTrigger>
               </TabsList>
+
+              {/* Products Tab */}
+              <TabsContent value="products" className="space-y-6 mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Assigned Products</CardTitle>
+                    <CardDescription>Products assigned to this retailer with custom pricing</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {productsLoading ? (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                      </div>
+                    ) : retailerProducts.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                        <Package className="h-12 w-12 mb-4" />
+                        <p className="font-medium">No products assigned</p>
+                        <p className="text-sm">Products assigned to this retailer will appear here</p>
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Product</TableHead>
+                            <TableHead>SKU</TableHead>
+                            <TableHead>Brand</TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead>Unit Price</TableHead>
+                            <TableHead>Custom Price</TableHead>
+                            <TableHead>Stock Qty</TableHead>
+                            <TableHead>Available</TableHead>
+                            <TableHead>Featured</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {retailerProducts.map((rp: any) => (
+                            <TableRow key={rp.id} className="cursor-pointer" onClick={() => rp.product?.id && router.push(`/products/${rp.product.id}`)}>
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  {rp.product?.image_url ? (
+                                    <img src={rp.product.image_url} alt={rp.product?.name} className="w-10 h-10 rounded object-cover" />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                                      <Package className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                  )}
+                                  <span className="font-medium">{rp.product?.name || 'Unknown'}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">{rp.product?.sku || 'N/A'}</TableCell>
+                              <TableCell>{rp.product?.brand || '-'}</TableCell>
+                              <TableCell>{rp.product?.category || '-'}</TableCell>
+                              <TableCell>₹{rp.product?.unit_price?.toLocaleString() || '0'}</TableCell>
+                              <TableCell>
+                                {rp.custom_price != null ? (
+                                  <span className={rp.custom_price !== rp.product?.unit_price ? 'text-blue-600 font-medium' : ''}>
+                                    ₹{rp.custom_price.toLocaleString()}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell>{rp.stock_quantity ?? '-'}</TableCell>
+                              <TableCell>
+                                <Badge variant={rp.is_available ? "default" : "secondary"}>
+                                  {rp.is_available ? "Yes" : "No"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {rp.is_featured && <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
               {/* Business Info Tab */}
               <TabsContent value="business" className="space-y-6 mt-6">

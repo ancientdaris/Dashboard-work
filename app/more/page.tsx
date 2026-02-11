@@ -43,7 +43,7 @@ export default function MorePage() {
     // Operations Modules
     { title: 'Retailers', icon: Store, href: '/retailers', description: 'Retailer management', category: 'operations', color: '#f59e0b' },
     { title: 'Customers', icon: UserPlus, href: '/more/customers', description: 'Customer management', category: 'operations', color: '#f59e0b' },
-    { title: 'Wholesalers', icon: Building2, href: '/more/wholesalers', description: 'Wholesaler management', category: 'operations', color: '#f59e0b' },
+    { title: 'Wholesalers', icon: Building2, href: '/wholesalers', description: 'Wholesaler management', category: 'operations', color: '#f59e0b' },
     { title: 'Interior Designers', icon: Palette, href: '/more/interior-designers', description: 'Designer partnerships', category: 'operations', color: '#f59e0b' },
     { title: 'Retailer Discovery', icon: MapPin, href: '/more/retailer-discovery', description: 'Find new retailers', category: 'operations', color: '#f59e0b' },
     { title: 'Deliveries', icon: Truck, href: '/deliveries', description: 'Delivery tracking', category: 'operations', color: '#f59e0b' },
