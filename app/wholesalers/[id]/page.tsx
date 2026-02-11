@@ -328,7 +328,7 @@ export default function WholesalerDetailPage() {
                       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                         <Package className="h-12 w-12 mb-4" />
                         <p className="font-medium">No products in feed</p>
-                        <p className="text-sm">This wholesaler hasn't added any products yet</p>
+                        <p className="text-sm">This wholesaler has not added any products yet</p>
                       </div>
                     ) : (
                       <Table>
