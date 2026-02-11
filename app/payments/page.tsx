@@ -40,7 +40,7 @@ import { useToast } from "@/components/ui/use-toast";
 import type { Payment, Retailer, PaymentStatus } from "@/types/database.types";
 
 type PaymentWithRelations = Payment & {
-  retailer?: Retailer;
+  retailer?: Retailer | null;
 };
 
 type Invoice = {
@@ -280,8 +280,8 @@ export default function PaymentsPage() {
       txtContent += `Retailer: ${payment.retailer?.name || "N/A"}\n`;
       txtContent += `Amount: ₹${payment.amount.toLocaleString()}\n`;
       txtContent += `Payment Method: ${payment.payment_method || "N/A"}\n`;
-      txtContent += `Status: ${payment.status.toUpperCase()}\n`;
-      txtContent += `Payment Date: ${new Date(payment.payment_date).toLocaleString()}\n`;
+      txtContent += `Status: ${(payment.status || 'pending').toUpperCase()}\n`;
+      txtContent += `Payment Date: ${payment.payment_date ? new Date(payment.payment_date).toLocaleString() : 'N/A'}\n`;
       txtContent += `Reference Number: ${payment.reference_number || "N/A"}\n`;
       if (payment.notes) {
         txtContent += `Notes: ${payment.notes}\n`;
@@ -324,7 +324,7 @@ export default function PaymentsPage() {
     });
   };
 
-  const getStatusBadge = (status: PaymentStatus) => {
+  const getStatusBadge = (status: PaymentStatus | null) => {
     const variants: Record<PaymentStatus, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
       completed: { variant: "default", label: "Completed" },
       pending: { variant: "secondary", label: "Pending" },
@@ -332,7 +332,7 @@ export default function PaymentsPage() {
       refunded: { variant: "outline", label: "Refunded" },
     };
     
-    const config = variants[status] || variants.pending;
+    const config = variants[status || 'pending'] || variants.pending;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -505,7 +505,7 @@ export default function PaymentsPage() {
                             {getStatusBadge(payment.status)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {new Date(payment.payment_date).toLocaleDateString()}
+                            {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {payment.is_same_day ? (

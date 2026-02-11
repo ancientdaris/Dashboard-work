@@ -354,7 +354,7 @@ export default function RetailerDetailPage() {
                     <DocumentStatus
                       label="Company PAN Card"
                       uploaded={!!retailer.company_pan_card}
-                      verified={retailer.company_pan_card_verified}
+                      verified={retailer.company_pan_card_verified ?? false}
                     />
                   </CardContent>
                 </Card>
@@ -369,17 +369,17 @@ export default function RetailerDetailPage() {
                       <DocumentStatus
                         label="GST Certificate"
                         uploaded={!!retailer.gst_certificate}
-                        verified={retailer.gst_certificate_verified}
+                        verified={retailer.gst_certificate_verified ?? false}
                       />
                       <DocumentStatus
                         label="Udhyam Aadhar"
                         uploaded={!!retailer.udhyam_aadhar}
-                        verified={retailer.udhyam_aadhar_verified}
+                        verified={retailer.udhyam_aadhar_verified ?? false}
                       />
                       <DocumentStatus
                         label="Gumasta Certificate"
                         uploaded={!!retailer.gumasta_certificate}
-                        verified={retailer.gumasta_certificate_verified}
+                        verified={retailer.gumasta_certificate_verified ?? false}
                       />
                     </CardContent>
                   </Card>
@@ -395,17 +395,17 @@ export default function RetailerDetailPage() {
                       <DocumentStatus
                         label="AOA (Articles of Association)"
                         uploaded={!!retailer.aoa_document}
-                        verified={retailer.aoa_document_verified}
+                        verified={retailer.aoa_document_verified ?? false}
                       />
                       <DocumentStatus
                         label="MOA (Memorandum of Association)"
                         uploaded={!!retailer.moa_document}
-                        verified={retailer.moa_document_verified}
+                        verified={retailer.moa_document_verified ?? false}
                       />
                       <DocumentStatus
                         label="Certificate of Incorporation"
                         uploaded={!!retailer.certificate_of_incorporation}
-                        verified={retailer.certificate_of_incorporation_verified}
+                        verified={retailer.certificate_of_incorporation_verified ?? false}
                       />
                     </CardContent>
                   </Card>
@@ -420,17 +420,17 @@ export default function RetailerDetailPage() {
                     <DocumentStatus
                       label="Owner PAN Card"
                       uploaded={!!retailer.owner_pan_card}
-                      verified={retailer.owner_pan_card_verified}
+                      verified={retailer.owner_pan_card_verified ?? false}
                     />
                     <DocumentStatus
                       label="Owner Aadhar Card (Front)"
                       uploaded={!!retailer.owner_aadhar_card_front}
-                      verified={retailer.owner_aadhar_card_front_verified}
+                      verified={retailer.owner_aadhar_card_front_verified ?? false}
                     />
                     <DocumentStatus
                       label="Owner Aadhar Card (Back)"
                       uploaded={!!retailer.owner_aadhar_card_back}
-                      verified={retailer.owner_aadhar_card_back_verified}
+                      verified={retailer.owner_aadhar_card_back_verified ?? false}
                     />
                   </CardContent>
                 </Card>
@@ -471,8 +471,8 @@ export default function RetailerDetailPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <p className="text-sm text-gray-500">Account Created</p>
-                        <p className="font-medium">{new Date(retailer.created_at).toLocaleDateString()}</p>
-                        <p className="text-xs text-gray-400">{new Date(retailer.created_at).toLocaleTimeString()}</p>
+                        <p className="font-medium">{retailer.created_at ? new Date(retailer.created_at).toLocaleDateString() : 'N/A'}</p>
+                        <p className="text-xs text-gray-400">{retailer.created_at ? new Date(retailer.created_at).toLocaleTimeString() : ''}</p>
                       </div>
                       {retailer.updated_at && (
                         <div className="space-y-1">

@@ -19,13 +19,13 @@ interface WholesalerRetailerLink {
   created_at: string | null;
   updated_at: string | null;
   wholesaler?: {
-    full_name: string;
+    full_name: string | null;
     email: string;
-  };
+  } | null;
   retailer?: {
-    full_name: string;
+    full_name: string | null;
     email: string;
-  };
+  } | null;
 }
 
 export default function WholesalerLinksPage() {

@@ -1,28 +1,17 @@
 import { fetchTableData, fetchById, insertRecord, updateRecord, deleteRecord } from '@/lib/supabase/db';
-import type { Database } from '@/types/database.types';
-type Order = Database['public']['Tables']['orders']['Row'];
-type OrderInsert = Database['public']['Tables']['orders']['Insert'];
-type OrderItem = Database['public']['Tables']['order_items']['Row'];
-type OrderStatus = Database['public']['Enums']['order_status'];
-type Retailer = Database['public']['Tables']['retailers']['Row'];
-type Product = Database['public']['Tables']['products']['Row'];
+import type { Order, OrderItem, OrderStatus, OrderInsert, Product, OrderWithRelations } from '@/types/database.types';
 
 const TABLES = {
   ORDERS: 'orders' as const,
   ORDER_ITEMS: 'order_items' as const,
 } as const;
 
-type OrderWithRelations = Order & {
-  retailer: Retailer;
-  items: Array<OrderItem & { product: Product }>;
-};
-
 export async function getOrders(
   filters: Partial<Order> = {},
   options: {
     limit?: number;
     offset?: number;
-    orderBy?: { column: keyof Order; ascending: boolean };
+    orderBy?: { column: string; ascending: boolean };
   } = {}
 ): Promise<{ data: OrderWithRelations[] | null; error: Error | null }> {
   return fetchTableData(
@@ -47,20 +36,20 @@ export async function getOrderById(
 
 export async function createOrder(orderData: {
   order_number: string;
-  retailer_id: string;
-  status: OrderStatus;
+  retailer_id?: string | null;
+  status?: OrderStatus | null;
   subtotal: number;
-  tax_amount: number;
-  discount_amount: number;
+  tax_amount?: number | null;
+  discount_amount?: number | null;
   total_amount: number;
-  notes?: string;
-  created_by: string;
+  notes?: string | null;
+  created_by?: string | null;
   items: Array<{
-    product_id: string;
+    product_id?: string | null;
     quantity: number;
     unit_price: number;
-    tax_rate: number;
-    discount_amount: number;
+    tax_rate?: number | null;
+    discount_amount?: number | null;
     line_total: number;
   }>;
 }): Promise<{ data: OrderWithRelations | null; error: Error | null }> {
@@ -72,20 +61,19 @@ export async function createOrder(orderData: {
       'orders',
       order as Omit<OrderInsert, 'id' | 'created_at' | 'updated_at'>
     );
-    
+
     if (error || !orderResult) {
       return { data: null, error: error || new Error('Failed to create order') };
     }
-    
-    // Add order items
+
     const orderItems = items.map(item => ({
       ...item,
       order_id: orderResult.id,
     }));
-    
+
     const results = await Promise.all(
-      orderItems.map(item => 
-        insertRecord('order_items', item as Omit<OrderItem, 'id' | 'created_at' | 'updated_at'>)
+      orderItems.map(item =>
+        insertRecord('order_items', item as never)
       )
     );
     
@@ -159,7 +147,7 @@ export async function getOrdersByRetailer(
 
 export async function getOrderItems(
   orderId: string
-): Promise<{ data: Array<OrderItem & { product: Product }> | null; error: Error | null }> {
+): Promise<{ data: Array<OrderItem & { product?: Product | null }> | null; error: Error | null }> {
   return fetchTableData(
     TABLES.ORDER_ITEMS,
     {

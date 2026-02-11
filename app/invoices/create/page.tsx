@@ -91,8 +91,8 @@ function CreateInvoiceContent() {
     if (data) {
       setSelectedRetailer(data.retailer_id || '');
       setSubtotal(data.subtotal.toString());
-      setTaxAmount(data.tax_amount.toString());
-      setDiscountAmount(data.discount_amount.toString());
+      setTaxAmount((data.tax_amount ?? 0).toString());
+      setDiscountAmount((data.discount_amount ?? 0).toString());
       setNotes(data.notes || '');
     }
   };

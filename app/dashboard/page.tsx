@@ -67,8 +67,8 @@ interface TodaysOrder {
   id: string;
   order_number: string;
   total_amount: number;
-  status: string;
-  created_at: string;
+  status: string | null;
+  created_at: string | null;
   retailers: {
     name: string;
     business_name: string | null;
@@ -144,12 +144,12 @@ export default function DashboardPage() {
         .select('quantity_in_stock, reorder_level');
 
       const lowStockItems = inventoryData?.filter(
-        (item: { quantity_in_stock: number; reorder_level: number }) => 
-          item.quantity_in_stock <= item.reorder_level && item.quantity_in_stock > 0
+        (item: { quantity_in_stock: number | null; reorder_level: number | null }) =>
+          (item.quantity_in_stock ?? 0) <= (item.reorder_level ?? 0) && (item.quantity_in_stock ?? 0) > 0
       ).length || 0;
 
       const outOfStockItems = inventoryData?.filter(
-        (item: { quantity_in_stock: number }) => item.quantity_in_stock === 0
+        (item: { quantity_in_stock: number | null }) => (item.quantity_in_stock ?? 0) === 0
       ).length || 0;
 
       // Fetch retailers count
@@ -293,7 +293,7 @@ export default function DashboardPage() {
 
         // Add products to results
         if (products) {
-          products.forEach((product: { id: string; name: string; sku: string; unit_price: number; category: string }) => {
+          products.forEach((product: { id: string; name: string; sku: string; unit_price: number; category: string | null }) => {
             results.push({
               id: product.id,
               name: product.name,
@@ -306,7 +306,7 @@ export default function DashboardPage() {
 
         // Add orders to results
         if (orders) {
-          orders.forEach((order: { id: string; order_number: string; total_amount: number; status: string }) => {
+          orders.forEach((order: { id: string; order_number: string; total_amount: number; status: string | null }) => {
             results.push({
               id: order.id,
               name: order.order_number,
@@ -878,15 +878,15 @@ export default function DashboardPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <p className="font-semibold text-lg">{order.order_number}</p>
-                            <Badge className={getStatusColor(order.status)}>
-                              {order.status}
+                            <Badge className={getStatusColor(order.status || 'pending')}>
+                              {order.status || 'pending'}
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
                             {order.retailers?.business_name || order.retailers?.name || 'Unknown Retailer'}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {new Date(order.created_at).toLocaleString()}
+                            {order.created_at ? new Date(order.created_at).toLocaleString() : 'N/A'}
                           </p>
                         </div>
                         <div className="text-right">

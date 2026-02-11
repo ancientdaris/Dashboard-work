@@ -135,11 +135,11 @@ export default function OrderDetailPage() {
                   <div>
                     <CardTitle className="text-3xl">{order.order_number}</CardTitle>
                     <CardDescription className="mt-2">
-                      Created on {new Date(order.created_at).toLocaleDateString()} at {new Date(order.created_at).toLocaleTimeString()}
+                      Created on {order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A'} at {order.created_at ? new Date(order.created_at).toLocaleTimeString() : 'N/A'}
                     </CardDescription>
                   </div>
-                  <Badge variant={getStatusBadgeVariant(order.status)} className="capitalize text-sm px-4 py-2">
-                    {order.status}
+                  <Badge variant={getStatusBadgeVariant(order.status || 'pending')} className="capitalize text-sm px-4 py-2">
+                    {order.status || 'pending'}
                   </Badge>
                 </div>
               </CardHeader>
@@ -156,10 +156,10 @@ export default function OrderDetailPage() {
                       <span>{order.retailers.email}</span>
                     </div>
                   )}
-                  {order.retailers?.phone && (
+                  {order.retailers?.mobile_number && (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Phone className="h-4 w-4" />
-                      <span>{order.retailers.phone}</span>
+                      <span>{order.retailers.mobile_number}</span>
                     </div>
                   )}
                 </div>
@@ -254,7 +254,7 @@ export default function OrderDetailPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Created</span>
-                    <span>{new Date(order.created_at).toLocaleString()}</span>
+                    <span>{order.created_at ? new Date(order.created_at).toLocaleString() : 'N/A'}</span>
                   </div>
                   {order.updated_at && (
                     <div className="flex justify-between text-sm">

@@ -255,7 +255,7 @@ export default function ProductDetailPage() {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                         <div className="space-y-1">
                           <p className="text-sm text-muted-foreground">In Stock</p>
-                          <p className={`text-2xl font-bold ${product.inventory.quantity_in_stock <= product.inventory.reorder_level ? 'text-red-600' : 'text-green-600'}`}>
+                          <p className={`text-2xl font-bold ${(product.inventory.quantity_in_stock ?? 0) <= (product.inventory.reorder_level ?? 0) ? 'text-red-600' : 'text-green-600'}`}>
                             {product.inventory.quantity_in_stock}
                           </p>
                           <p className="text-xs text-muted-foreground">units</p>
@@ -293,7 +293,7 @@ export default function ProductDetailPage() {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground">Created</p>
-                        <p className="font-medium">{new Date(product.created_at).toLocaleString()}</p>
+                        <p className="font-medium">{product.created_at ? new Date(product.created_at).toLocaleString() : 'N/A'}</p>
                       </div>
                       {product.updated_at && (
                         <div>

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__supabase__list_tables",
+      "Bash(python:*)",
+      "Bash(npx tsc:*)",
+      "Bash(set NODE_OPTIONS=--max-old-space-size=4096)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
+}

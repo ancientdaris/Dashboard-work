@@ -262,11 +262,11 @@ export default function OrdersPage() {
                       <TableCell className="font-medium">{order.order_number}</TableCell>
                       <TableCell>{order.retailers?.name || 'N/A'}</TableCell>
                       <TableCell>
-                        <Badge variant={getStatusBadgeVariant(order.status)} className="capitalize">
-                          {order.status}
+                        <Badge variant={getStatusBadgeVariant(order.status || 'pending')} className="capitalize">
+                          {order.status || 'pending'}
                         </Badge>
                       </TableCell>
-                      <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell>{order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A'}</TableCell>
                       <TableCell>₹{Number(order.total_amount).toFixed(2)}</TableCell>
                       <TableCell>
                         <Button 

@@ -8,7 +8,7 @@ export async function getRetailers(
   options: {
     limit?: number;
     offset?: number;
-    orderBy?: { column: keyof Retailer; ascending: boolean };
+    orderBy?: { column: string; ascending: boolean };
   } = {}
 ) {
   return fetchTableData(
@@ -26,7 +26,7 @@ export async function getRetailerById(id: string) {
 }
 
 export async function createRetailer(retailer: Omit<Retailer, 'id' | 'created_at' | 'updated_at'>) {
-  return insertRecord(TABLE_NAME, retailer);
+  return insertRecord(TABLE_NAME, retailer as never);
 }
 
 export async function updateRetailer(id: string, updates: Partial<Retailer>) {

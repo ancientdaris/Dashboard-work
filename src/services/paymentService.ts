@@ -1,27 +1,16 @@
 import { fetchTableData, fetchById, insertRecord, updateRecord, deleteRecord } from '@/lib/supabase/db';
-import type { Database } from '@/types/database.types';
-
-type Payment = Database['public']['Tables']['payments']['Row'];
-type PaymentInsert = Database['public']['Tables']['payments']['Insert'];
-type PaymentStatus = Database['public']['Enums']['payment_status'];
-type Retailer = Database['public']['Tables']['retailers']['Row'];
-type Invoice = Database['public']['Tables']['invoices']['Row'];
+import type { Payment, PaymentStatus, PaymentInsert, PaymentWithRelations } from '@/types/database.types';
 
 const TABLES = {
   PAYMENTS: 'payments' as const,
 } as const;
-
-type PaymentWithRelations = Payment & {
-  retailer?: Retailer;
-  invoice?: Invoice;
-};
 
 export async function getPayments(
   filters: Partial<Payment> = {},
   options: {
     limit?: number;
     offset?: number;
-    orderBy?: { column: keyof Payment; ascending: boolean };
+    orderBy?: { column: string; ascending: boolean };
   } = {}
 ): Promise<{ data: PaymentWithRelations[] | null; error: Error | null }> {
   return fetchTableData(
@@ -47,22 +36,22 @@ export async function getPaymentById(
 export async function createPayment(paymentData: {
   payment_number: string;
   invoice_id?: string | null;
-  retailer_id: string;
+  retailer_id?: string | null;
   amount: number;
   payment_method?: string | null;
-  payment_date?: string;
-  status?: PaymentStatus;
+  payment_date?: string | null;
+  status?: PaymentStatus | null;
   reference_number?: string | null;
   notes?: string | null;
-  is_same_day?: boolean;
-  created_by: string;
+  is_same_day?: boolean | null;
+  created_by?: string | null;
   gateway_transaction_id?: string | null;
   gateway_name?: string | null;
 }): Promise<{ data: PaymentWithRelations | null; error: Error | null }> {
   try {
     const { data: paymentResult, error } = await insertRecord(
       TABLES.PAYMENTS,
-      paymentData as Omit<PaymentInsert, 'id' | 'created_at' | 'updated_at'>
+      paymentData as never
     );
     
     if (error || !paymentResult) {

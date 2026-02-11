@@ -311,14 +311,12 @@ export default function RetailersPage() {
         const retailerData = {
           name: formData.name,
           email: formData.email || null,
-          phone: formData.phone || null,
+          mobile_number: formData.phone || null,
           address: formData.address || null,
           city: formData.city || null,
           state: formData.state || null,
           postal_code: formData.postal_code || null,
-          country: formData.country || null,
-          tax_id: formData.tax_id || null,
-          gstin: formData.gstin || null,
+          gst_number: formData.gstin || null,
           credit_limit: parseFloat(formData.credit_limit) || 0,
           outstanding_balance: parseFloat(formData.outstanding_balance) || 0,
           is_active: formData.is_active,
@@ -369,13 +367,11 @@ export default function RetailersPage() {
           name: formData.name.trim(),
           owner_name: formData.owner_name.trim(),
           email: formData.email || null,
-          mobile_number: formData.mobile_number.trim(),
-          phone: formData.phone || null,
+          mobile_number: formData.mobile_number.trim() || formData.phone || null,
           address: formData.address.trim() || null,
           city: formData.city.trim() || null,
           state: formData.state.trim() || null,
           postal_code: formData.postal_code.trim() || null,
-          country: formData.country || null,
           gst_number: formData.gst_number.trim() || null,
           business_type: formData.business_type,
           credit_limit: parseFloat(formData.credit_limit) || 0,
@@ -435,20 +431,20 @@ export default function RetailersPage() {
       email: retailer.email || "",
       password: "",
       mobile_number: "",
-      phone: retailer.phone || "",
+      phone: retailer.mobile_number || "",
       address: retailer.address || "",
       city: retailer.city || "",
       state: retailer.state || "",
       postal_code: retailer.postal_code || "",
-      country: retailer.country || "India",
+      country: "India",
       gst_number: "",
       business_type: "proprietorship",
       cin_number: "",
-      tax_id: retailer.tax_id || "",
-      gstin: retailer.gstin || "",
-      credit_limit: retailer.credit_limit.toString(),
-      outstanding_balance: retailer.outstanding_balance.toString(),
-      is_active: retailer.is_active,
+      tax_id: "",
+      gstin: retailer.gst_number || "",
+      credit_limit: (retailer.credit_limit ?? 0).toString(),
+      outstanding_balance: (retailer.outstanding_balance ?? 0).toString(),
+      is_active: retailer.is_active ?? true,
     });
     setIsSheetOpen(true);
   };
@@ -526,7 +522,7 @@ export default function RetailersPage() {
     const matchesSearch = 
       retailer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       retailer.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      retailer.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      retailer.mobile_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       retailer.city?.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesStatus = statusFilter === "all" || 
@@ -539,8 +535,8 @@ export default function RetailersPage() {
   });
 
   const activeRetailers = retailers.filter(r => r.is_active).length;
-  const totalOutstanding = retailers.reduce((sum, r) => sum + r.outstanding_balance, 0);
-  const totalCreditLimit = retailers.reduce((sum, r) => sum + r.credit_limit, 0);
+  const totalOutstanding = retailers.reduce((sum, r) => sum + (r.outstanding_balance ?? 0), 0);
+  const totalCreditLimit = retailers.reduce((sum, r) => sum + (r.credit_limit ?? 0), 0);
 
   return (
     <ProtectedRoute>
@@ -716,8 +712,8 @@ export default function RetailersPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {filteredRetailers.map((retailer) => {
-                    const creditUsagePercent = retailer.credit_limit > 0 
-                      ? (retailer.outstanding_balance / retailer.credit_limit) * 100 
+                    const creditUsagePercent = (retailer.credit_limit ?? 0) > 0
+                      ? ((retailer.outstanding_balance ?? 0) / (retailer.credit_limit ?? 1)) * 100
                       : 0;
                     
                     return (
@@ -729,20 +725,17 @@ export default function RetailersPage() {
                         <td className="px-6 py-4">
                           <div className="space-y-1">
                             <p className="font-medium text-gray-900">{retailer.name}</p>
-                            {retailer.gstin && (
-                              <p className="text-xs text-gray-500">GSTIN: {retailer.gstin}</p>
-                            )}
-                            {retailer.tax_id && (
-                              <p className="text-xs text-gray-500">Tax ID: {retailer.tax_id}</p>
+                            {retailer.gst_number && (
+                              <p className="text-xs text-gray-500">GSTIN: {retailer.gst_number}</p>
                             )}
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="space-y-2">
-                            {retailer.phone && (
+                            {retailer.mobile_number && (
                               <div className="flex items-center gap-2 text-sm text-gray-600">
                                 <Phone className="h-3 w-3" />
-                                <span>{retailer.phone}</span>
+                                <span>{retailer.mobile_number}</span>
                               </div>
                             )}
                             {retailer.email && (
@@ -766,7 +759,7 @@ export default function RetailersPage() {
                         <td className="px-6 py-4">
                           <div className="space-y-1">
                             <p className="text-sm font-medium text-gray-900">
-                              ₹{retailer.outstanding_balance.toLocaleString()} / ₹{retailer.credit_limit.toLocaleString()}
+                              ₹{(retailer.outstanding_balance ?? 0).toLocaleString()} / ₹{(retailer.credit_limit ?? 0).toLocaleString()}
                             </p>
                             <div className="w-full bg-gray-200 rounded-full h-1.5">
                               <div 

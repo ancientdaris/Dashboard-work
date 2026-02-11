@@ -1,9 +1,9 @@
 import { createClient } from '@/lib/supabase/client';
-import type { Database } from '@/types/database.types';
+import type { ActivityLogInsert } from '@/types/database.types';
 
-export type ActivityAction = 
-  | 'login' 
-  | 'logout' 
+export type ActivityAction =
+  | 'login'
+  | 'logout'
   | 'signup'
   | 'password_reset'
   | 'profile_update'
@@ -17,8 +17,6 @@ interface LogActivityParams {
   entityId?: string;
   metadata?: Record<string, unknown>;
 }
-
-type ActivityLogInsert = Database['public']['Tables']['activity_logs']['Insert'];
 
 /**
  * Logs user activity to the activity_logs table
@@ -45,15 +43,15 @@ export async function logActivity({
 
     // Insert activity log
     const logData: ActivityLogInsert = {
-      user_id: user.id,
       action,
+      user_id: user.id,
       entity_type: entityType || null,
       entity_id: entityId || null,
-      metadata: metadata || null,
+      metadata: (metadata as ActivityLogInsert['metadata']) || null,
       user_agent: userAgent,
-      ip_address: null, // Will be captured by database trigger or backend
-      changed_from: {},
-      changed_to: {}
+      ip_address: null,
+      changed_from: null,
+      changed_to: null
     };
 
     const { error, data } = await supabase

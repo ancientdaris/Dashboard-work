@@ -21,7 +21,22 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createClient } from "@/lib/supabase";
-import type { Product, Barcode } from "@/types/database.types";
+import type { Product } from "@/types/database.types";
+
+// Local type since barcodes table was removed from Supabase
+// Products now store barcode data directly via the `barcode` field
+interface Barcode {
+  id: string;
+  barcode_type: 'barcode' | 'qrcode';
+  barcode_data: string;
+  product_id: string | null;
+  product_name: string;
+  price: string | null;
+  sku: string;
+  image_url: string | null;
+  created_at: string;
+  created_by: string | null;
+}
 
 export default function BarcodeGeneratorPage() {
   const [barcodeType, setBarcodeType] = useState<"barcode" | "qrcode">("barcode");
@@ -64,17 +79,11 @@ export default function BarcodeGeneratorPage() {
   const fetchBarcodes = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('barcodes')
-        .select('*, product:products(*)')
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-      setGeneratedBarcodes(data || []);
+      // barcodes table has been removed - barcode data is now stored on products directly
+      // History is kept in-memory only for the current session
+      setGeneratedBarcodes([]);
     } catch (error) {
       console.error('Error fetching barcodes:', error);
-      alert('Failed to load barcode history');
     } finally {
       setLoading(false);
     }
@@ -201,25 +210,28 @@ export default function BarcodeGeneratorPage() {
         .from('barcodes')
         .getPublicUrl(fileName);
 
-      // Save barcode to database
-      const { data: barcodeRecord, error: dbError } = await supabase
-        .from('barcodes')
-        .insert({
-          barcode_type: barcodeType,
-          barcode_data: barcodeData,
-          product_id: selectedProductId,
-          product_name: productName || "Unnamed Product",
-          price: price || null,
-          sku: sku || barcodeData,
-          image_url: publicUrl,
-          created_by: null // You can add user ID here if you have auth
-        } as any) // Type assertion to bypass Supabase type checking
-        .select('*, product:products(*)')
-        .single();
+      // Store barcode data in-memory (barcodes table has been removed)
+      // If a product is selected, update its barcode field
+      if (selectedProductId) {
+        await supabase
+          .from('products')
+          .update({ barcode: barcodeData })
+          .eq('id', selectedProductId);
+      }
 
-      if (dbError) throw dbError;
+      const barcodeRecord: Barcode = {
+        id: crypto.randomUUID(),
+        barcode_type: barcodeType,
+        barcode_data: barcodeData,
+        product_id: selectedProductId,
+        product_name: productName || "Unnamed Product",
+        price: price || null,
+        sku: sku || barcodeData,
+        image_url: publicUrl,
+        created_at: new Date().toISOString(),
+        created_by: null,
+      };
 
-      // Update local state
       setGeneratedBarcodes([barcodeRecord, ...generatedBarcodes]);
       
       alert('Barcode generated and saved successfully!');

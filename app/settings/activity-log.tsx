@@ -11,14 +11,14 @@ import { toast } from '../../components/ui/use-toast';
 
 interface ActivityLog {
   id: string;
-  user_id: string;
+  user_id: string | null;
   action: string;
   entity_type: string | null;
   entity_id: string | null;
-  metadata: Record<string, unknown> | null;
+  metadata: unknown;
   ip_address: string | null;
   user_agent: string | null;
-  created_at: string;
+  created_at: string | null;
   profiles?: {
     full_name?: string | null;
     email?: string | null;
@@ -221,7 +221,7 @@ export function ActivityLog() {
                     <div className="flex items-center space-x-4 mt-1 text-xs text-muted-foreground">
                       <div className="flex items-center space-x-1">
                         <Clock className="h-3 w-3" />
-                        <span>{format(new Date(log.created_at), 'MMM d, yyyy h:mm a')}</span>
+                        <span>{log.created_at ? format(new Date(log.created_at), 'MMM d, yyyy h:mm a') : 'N/A'}</span>
                       </div>
                       
                       {log.ip_address && (
@@ -243,7 +243,7 @@ export function ActivityLog() {
                   </div>
                 </div>
                 
-                {log.metadata && Object.keys(log.metadata).length > 0 && (
+                {log.metadata && typeof log.metadata === 'object' && !Array.isArray(log.metadata) && Object.keys(log.metadata as Record<string, unknown>).length > 0 ? (
                   <div className="text-xs text-muted-foreground">
                     <details>
                       <summary className="cursor-pointer hover:underline">Details</summary>
@@ -252,7 +252,7 @@ export function ActivityLog() {
                       </pre>
                     </details>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           ))

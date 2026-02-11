@@ -29,22 +29,17 @@ type Product = {
   cost_price: number | null;
   tax_rate: number | null;
   image_url: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  is_active: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
   hsn_code: string | null;
   sac_code: string | null;
   expiry_date: string | null;
-  batch_tracking_enabled: boolean;
+  batch_tracking_enabled: boolean | null;
   barcode: string | null;
   weight: number | null;
-  dimensions: {
-    length?: number;
-    width?: number;
-    height?: number;
-    unit?: string;
-  } | null;
-  is_dead_stock: boolean;
+  dimensions: unknown;
+  is_dead_stock: boolean | null;
   dead_stock_discount: number | null;
   dead_stock_listed_at: string | null;
 };
@@ -253,7 +248,7 @@ export function ProductsTable({ searchTerm }: ProductsTableProps) {
                     {product.batch_tracking_enabled ? 'Tracked' : 'Not Tracked'}
                   </TableCell>
                   <TableCell>
-                    {format(new Date(product.updated_at), 'MMM d, yyyy')}
+                    {product.updated_at ? format(new Date(product.updated_at), 'MMM d, yyyy') : 'N/A'}
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-end space-x-2">
