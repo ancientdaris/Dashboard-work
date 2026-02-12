@@ -8,7 +8,9 @@
       "Bash(ls:*)",
       "Bash(cmd /c \"tree /F /A D:\\\\work\\\\osasadmin\")",
       "mcp__supabase__execute_sql",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "WebSearch",
+      "WebFetch(domain:github.com)"
     ]
   },
   "enableAllProjectMcpServers": true,
