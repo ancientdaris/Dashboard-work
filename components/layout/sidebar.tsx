@@ -35,7 +35,8 @@ import {
   Link2,
   Users,
   MoreHorizontal,
-  Building2
+  Building2,
+  Palette
 } from "lucide-react";
 
 const sidebarItems = [
@@ -90,6 +91,11 @@ const sidebarItems = [
     title: "Wholesalers",
     href: "/wholesalers",
     icon: Building2,
+  },
+  {
+    title: "Designers",
+    href: "/designers",
+    icon: Palette,
   },
   {
     title: "Pricing",
