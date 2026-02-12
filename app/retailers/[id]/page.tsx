@@ -23,8 +23,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  Package,
-  Star
+  Package
 } from "lucide-react";
 import {
   Table,
@@ -109,19 +108,54 @@ export default function RetailerDetailPage() {
     try {
       setProductsLoading(true);
       const supabase = createClient();
-      const { data, error } = await supabase
-        .from('retailer_products')
+
+      // Fetch products this retailer has ordered via order_items
+      const { data: orderItems, error } = await supabase
+        .from('order_items')
         .select(`
-          *,
-          product:products!retailer_products_product_id_fkey (
+          id,
+          quantity,
+          unit_price,
+          line_total,
+          order_id,
+          product:products!order_items_product_id_fkey (
             id, name, sku, brand, category, unit_price, cost_price, image_url, is_active, tax_rate
+          ),
+          order:orders!order_items_order_id_fkey (
+            id, retailer_id, status, created_at
           )
         `)
-        .eq('retailer_id', retailerId)
-        .order('display_order', { ascending: true });
+        .not('product', 'is', null);
 
       if (error) throw error;
-      setRetailerProducts(data || []);
+
+      // Filter to only this retailer's orders and aggregate by product
+      const retailerItems = (orderItems || []).filter(
+        (item: any) => item.order?.retailer_id === retailerId
+      );
+
+      // Aggregate: group by product id
+      const productMap = new Map<string, any>();
+      for (const item of retailerItems) {
+        const productId = (item.product as any)?.id;
+        if (!productId) continue;
+        if (productMap.has(productId)) {
+          const existing = productMap.get(productId);
+          existing.total_ordered += item.quantity || 0;
+          existing.order_count += 1;
+          existing.total_spent += Number(item.line_total) || 0;
+        } else {
+          productMap.set(productId, {
+            id: item.id,
+            product: item.product,
+            total_ordered: item.quantity || 0,
+            order_count: 1,
+            total_spent: Number(item.line_total) || 0,
+          });
+        }
+      }
+
+      setRetailerProducts(Array.from(productMap.values()));
     } catch (error) {
       console.error('Error fetching retailer products:', error);
     } finally {
@@ -321,8 +355,8 @@ export default function RetailerDetailPage() {
               <TabsContent value="products" className="space-y-6 mt-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Assigned Products</CardTitle>
-                    <CardDescription>Products assigned to this retailer with custom pricing</CardDescription>
+                    <CardTitle>Products Ordered</CardTitle>
+                    <CardDescription>Products this retailer has ordered</CardDescription>
                   </CardHeader>
                   <CardContent>
                     {productsLoading ? (
@@ -332,8 +366,8 @@ export default function RetailerDetailPage() {
                     ) : retailerProducts.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                         <Package className="h-12 w-12 mb-4" />
-                        <p className="font-medium">No products assigned</p>
-                        <p className="text-sm">Products assigned to this retailer will appear here</p>
+                        <p className="font-medium">No products ordered</p>
+                        <p className="text-sm">Products ordered by this retailer will appear here</p>
                       </div>
                     ) : (
                       <Table>
@@ -344,10 +378,9 @@ export default function RetailerDetailPage() {
                             <TableHead>Brand</TableHead>
                             <TableHead>Category</TableHead>
                             <TableHead>Unit Price</TableHead>
-                            <TableHead>Custom Price</TableHead>
-                            <TableHead>Stock Qty</TableHead>
-                            <TableHead>Available</TableHead>
-                            <TableHead>Featured</TableHead>
+                            <TableHead>Total Ordered</TableHead>
+                            <TableHead>Orders</TableHead>
+                            <TableHead>Total Spent</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -368,25 +401,10 @@ export default function RetailerDetailPage() {
                               <TableCell className="text-muted-foreground">{rp.product?.sku || 'N/A'}</TableCell>
                               <TableCell>{rp.product?.brand || '-'}</TableCell>
                               <TableCell>{rp.product?.category || '-'}</TableCell>
-                              <TableCell>₹{rp.product?.unit_price?.toLocaleString() || '0'}</TableCell>
-                              <TableCell>
-                                {rp.custom_price != null ? (
-                                  <span className={rp.custom_price !== rp.product?.unit_price ? 'text-blue-600 font-medium' : ''}>
-                                    ₹{rp.custom_price.toLocaleString()}
-                                  </span>
-                                ) : (
-                                  <span className="text-muted-foreground">-</span>
-                                )}
-                              </TableCell>
-                              <TableCell>{rp.stock_quantity ?? '-'}</TableCell>
-                              <TableCell>
-                                <Badge variant={rp.is_available ? "default" : "secondary"}>
-                                  {rp.is_available ? "Yes" : "No"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {rp.is_featured && <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />}
-                              </TableCell>
+                              <TableCell>₹{Number(rp.product?.unit_price || 0).toLocaleString()}</TableCell>
+                              <TableCell className="font-medium">{rp.total_ordered}</TableCell>
+                              <TableCell>{rp.order_count}</TableCell>
+                              <TableCell className="font-medium text-green-600">₹{rp.total_spent.toLocaleString()}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>

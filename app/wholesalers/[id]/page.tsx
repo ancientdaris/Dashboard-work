@@ -30,8 +30,7 @@ import {
   Clock,
   X,
   Calendar,
-  AlertCircle,
-  Star
+  AlertCircle
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -40,7 +39,7 @@ import type { Database } from "@/types/database.types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Wholesaler = Database['public']['Tables']['wholesalers']['Row'];
-type WholesalerProductFeed = Database['public']['Tables']['wholesaler_product_feed']['Row'];
+type Product = Database['public']['Tables']['products']['Row'];
 
 interface LinkedRetailer {
   id: string;
@@ -91,7 +90,7 @@ export default function WholesalerDetailPage() {
   const wholesalerId = params.id as string;
 
   const [wholesaler, setWholesaler] = useState<Wholesaler | null>(null);
-  const [products, setProducts] = useState<WholesalerProductFeed[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [linkedRetailers, setLinkedRetailers] = useState<LinkedRetailer[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -115,14 +114,16 @@ export default function WholesalerDetailPage() {
       if (error) throw error;
       setWholesaler(data);
 
-      // Fetch product feed
-      const { data: feedData } = await supabase
-        .from('wholesaler_product_feed')
-        .select('*')
-        .eq('wholesaler_id', wholesalerId)
-        .order('product_name');
+      // Fetch products created by this wholesaler's user
+      if (data?.user_id) {
+        const { data: productsData } = await supabase
+          .from('products')
+          .select('*')
+          .eq('created_by', data.user_id)
+          .order('name');
 
-      setProducts(feedData || []);
+        setProducts(productsData || []);
+      }
 
       // Fetch linked retailers (via profiles FK using user_id)
       if (data?.user_id) {
@@ -320,14 +321,14 @@ export default function WholesalerDetailPage() {
               <TabsContent value="products" className="space-y-6 mt-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Product Feed</CardTitle>
+                    <CardTitle>Products</CardTitle>
                     <CardDescription>Products offered by this wholesaler</CardDescription>
                   </CardHeader>
                   <CardContent>
                     {products.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                         <Package className="h-12 w-12 mb-4" />
-                        <p className="font-medium">No products in feed</p>
+                        <p className="font-medium">No products found</p>
                         <p className="text-sm">This wholesaler has not added any products yet</p>
                       </div>
                     ) : (
@@ -338,31 +339,33 @@ export default function WholesalerDetailPage() {
                             <TableHead>SKU</TableHead>
                             <TableHead>Brand</TableHead>
                             <TableHead>Category</TableHead>
-                            <TableHead>Wholesale Price</TableHead>
-                            <TableHead>MRP</TableHead>
-                            <TableHead>Discount</TableHead>
-                            <TableHead>Available Qty</TableHead>
-                            <TableHead>Min Order</TableHead>
+                            <TableHead>Unit Price</TableHead>
+                            <TableHead>Cost Price</TableHead>
+                            <TableHead>Tax Rate</TableHead>
                             <TableHead>Status</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {products.map((product) => (
-                            <TableRow key={product.id}>
+                            <TableRow key={product.id} className="cursor-pointer" onClick={() => router.push(`/products/${product.id}`)}>
                               <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium">{product.product_name}</span>
-                                  {product.is_featured && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
+                                <div className="flex items-center gap-3">
+                                  {product.image_url ? (
+                                    <img src={product.image_url} alt={product.name} className="w-10 h-10 rounded object-cover" />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                                      <Package className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                  )}
+                                  <span className="font-medium">{product.name}</span>
                                 </div>
                               </TableCell>
                               <TableCell className="text-muted-foreground">{product.sku || 'N/A'}</TableCell>
                               <TableCell>{product.brand || '-'}</TableCell>
                               <TableCell>{product.category || '-'}</TableCell>
-                              <TableCell className="font-medium">₹{product.wholesale_price.toLocaleString()}</TableCell>
-                              <TableCell>{product.mrp ? `₹${product.mrp.toLocaleString()}` : '-'}</TableCell>
-                              <TableCell>{product.discount_percentage ? `${product.discount_percentage}%` : '-'}</TableCell>
-                              <TableCell>{product.available_quantity ?? '-'}</TableCell>
-                              <TableCell>{product.min_order_quantity ?? '-'}</TableCell>
+                              <TableCell className="font-medium">₹{Number(product.unit_price || 0).toLocaleString()}</TableCell>
+                              <TableCell>₹{Number(product.cost_price || 0).toLocaleString()}</TableCell>
+                              <TableCell>{product.tax_rate ? `${product.tax_rate}%` : '-'}</TableCell>
                               <TableCell>
                                 <Badge variant={product.is_active ? "default" : "secondary"}>
                                   {product.is_active ? "Active" : "Inactive"}

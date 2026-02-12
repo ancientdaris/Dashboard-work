@@ -6,7 +6,8 @@
       "Bash(npx tsc:*)",
       "Bash(set NODE_OPTIONS=--max-old-space-size=4096)",
       "Bash(ls:*)",
-      "Bash(cmd /c \"tree /F /A D:\\\\work\\\\osasadmin\")"
+      "Bash(cmd /c \"tree /F /A D:\\\\work\\\\osasadmin\")",
+      "mcp__supabase__execute_sql"
     ]
   },
   "enableAllProjectMcpServers": true,
